@@ -2,22 +2,21 @@ import axiosInstance from '@/lib/axios';
 import { API_PATHS } from '@/lib/api-paths';
 import type { Review, HotelReview } from '@/types';
 
+// Assuming backend ListResponseDTO structure
+interface ListResponse<T> {
+  items: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data: T;
-}
-
-interface ReviewsResponse {
-  items: Review[] | HotelReview[];
-  total: number;
-  page: number;
-  limit: number;
-  pagination?: {
-    total: number;
-    page: number;
-    limit: number;
-  };
 }
 
 interface CreateReviewData {
@@ -38,33 +37,28 @@ export const reviewService = {
     limit?: number;
     minRating?: number;
     status?: 'pending' | 'approved' | 'rejected';
-
-  } = {}): Promise<ReviewsResponse> {
+  } = {}): Promise<ListResponse<Review | HotelReview>> {
     try {
-      const { page = 1, limit = 100, minRating, status } = options;
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        ...(minRating && { minRating: minRating.toString() }),
-        ...(status && { status })
-      });
+      const { page = 1, limit = 100 } = options;
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      if (options.minRating !== undefined) {
+        params.append('minRating', options.minRating.toString());
+      }
+      if (options.status !== undefined) {
+        params.append('status', options.status);
+      }
 
-      const response = await axiosInstance.get<ApiResponse<ReviewsResponse>>(
+      const response = await axiosInstance.get<ApiResponse<ListResponse<Review | HotelReview>>>(
         `${API_PATHS.REVIEWS.LIST}?${params.toString()}`
       );
       
       if (!response.data.success) {
-  throw new Error(response.data.message || 'Failed to fetch reviews');
-}
+        throw new Error(response.data.message || 'Failed to fetch reviews');
+      }
 
-    const { items = [], pagination } = response.data.data || {};
-    return {
-      items,
-      total: pagination?.total || items.length,
-      page: pagination?.page || 1,
-      limit: pagination?.limit || 10,
-    };
-
+      return response.data.data;
     } catch (error: any) {
       console.error('Failed to fetch all reviews:', error);
       
@@ -78,41 +72,45 @@ export const reviewService = {
   },
   
 
-  async getTourReviews(tourId?: string | number): Promise<Review[]> {
+  async getTourReviews(tourId: string | number, page: number = 1, limit: number = 10): Promise<ListResponse<Review>> {
     try {
-      const url = tourId
-        ? `${API_PATHS.REVIEWS.TOUR_REVIEWS(tourId)}`
-        : API_PATHS.REVIEWS.LIST;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      const url = `${API_PATHS.REVIEWS.TOUR_REVIEWS(tourId)}?${params.toString()}`;
 
-      const response = await axiosInstance.get<ApiResponse<{ reviews: Review[] }>>(url);
+      const response = await axiosInstance.get<ApiResponse<ListResponse<Review>>>(url);
       
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to fetch tour reviews');
       }
       
-      return response.data.data.reviews || [];
+      return response.data.data;
     } catch (error) {
       console.error('Failed to fetch tour reviews:', error);
-      return [];
+      throw new Error('Failed to load tour reviews');
     }
   },
 
-  async getHotelReviews(hotelId?: string | number): Promise<HotelReview[]> {
+  async getHotelReviews(hotelId: string | number, page: number = 1, limit: number = 10): Promise<ListResponse<HotelReview>> {
     try {
-      const url = hotelId
-        ? `${API_PATHS.REVIEWS.HOTEL_REVIEWS(hotelId)}`
-        : API_PATHS.REVIEWS.LIST;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      const url = `${API_PATHS.REVIEWS.HOTEL_REVIEWS(hotelId)}?${params.toString()}`;
 
-      const response = await axiosInstance.get<ApiResponse<{ reviews: HotelReview[] }>>(url);
+      const response = await axiosInstance.get<ApiResponse<ListResponse<HotelReview>>>(url);
       
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to fetch hotel reviews');
       }
       
-      return response.data.data.reviews || [];
+      return response.data.data;
     } catch (error) {
       console.error('Failed to fetch hotel reviews:', error);
-      return [];
+      throw new Error('Failed to load hotel reviews');
     }
   },
 

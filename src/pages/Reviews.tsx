@@ -11,20 +11,21 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { reviewService } from "@/services/reviewService";
 import { tourService } from "@/services/tourService";
-import type { Review, Tour } from "@/types";
+import type { Review, HotelReview, Tour } from "@/types";
 
 const Reviews = () => {
   const { toast } = useToast();
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<(Review | HotelReview)[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
+    name: '', // Although handled by auth, keep for form state
     tourId: '',
     rating: 5,
     comment: ''
+    
   });
 
   useEffect(() => {
@@ -32,10 +33,10 @@ const Reviews = () => {
       try {
         setLoading(true);
         const [reviewsData, toursData] = await Promise.all([
-          reviewService.getTourReviews(),
+          reviewService.getAllReviews({ status: 'approved' }),
           tourService.getTours()
         ]);
-        setReviews(reviewsData);
+        setReviews(reviewsData.items);
         setTours(toursData);
         setError(null);
       } catch (err) {
@@ -56,10 +57,9 @@ const Reviews = () => {
         tourId: formData.tourId,
         rating: formData.rating,
         comment: formData.comment,
-        userName: formData.name
       });
       
-      setReviews(prev => [review, ...prev]);
+      setReviews(prev => [review as Review, ...prev]);
       setIsReviewOpen(false);
       setFormData({ name: '', tourId: '', rating: 5, comment: '' });
       
@@ -95,8 +95,27 @@ const Reviews = () => {
           </Button>
         </motion.div>
 
+        {loading && (
+          <div className="text-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading reviews...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-destructive">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && reviews.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No reviews found. Be the first to write one!</p>
+          </div>
+        )}
+
         <div className="space-y-6">
-          {reviewsData.map((review, index) => (
+          {reviews.map((review, index) => (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 20 }}
@@ -122,18 +141,22 @@ const Reviews = () => {
                               day: "numeric",
                             })}
                           </div>
-                          <div className="flex gap-1">
-                            {[...Array(review.rating)].map((_, i) => (
-                              <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-                            ))}
-                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: 'rating' in review ? review.rating : (review as HotelReview).overallRating }).map((_, i) => (
+                            <Star key={i} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                          ))}
+                          <span className="text-sm text-muted-foreground ml-1">
+                            {'rating' in review ? review.rating : (review as HotelReview).overallRating}
+                            /5
+                          </span>
                         </div>
                       </div>
                       <div className="mb-3">
                         <div className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                          {review.tourName}
+                          {'tourId' in review ? review.tourName : (review as HotelReview).hotelName}
                         </div>
-                      </div>
+                      </div> 
                       <p className="text-muted-foreground leading-relaxed">{review.comment}</p>
                     </div>
                   </div>
@@ -153,11 +176,12 @@ const Reviews = () => {
           <form onSubmit={handleReview} className="space-y-4">
             <div>
               <Label htmlFor="reviewName">Your Name</Label>
-              <Input 
-                id="reviewName" 
+              <Input
+                id="reviewName"
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                required 
+                placeholder="Your Name (for display only)"
+                required
               />
             </div>
             <div>
