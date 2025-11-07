@@ -17,34 +17,30 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-interface ToursListResponse {
-  tours: Tour[];
-  total: number;
-  page: number;
-  totalPages: number;
+interface PaginatedResponse<T> {
   items: Tour[];
+  pagination: {
+    total: number;
+  };
 }
 
 export const tourService = {
   // Get all tours with filters
   async getTours(params?: ToursListParams): Promise<Tour[]> {
     try {
-      const response = await axiosInstance.get<ApiResponse<ToursListResponse>>(
+      const response = await axiosInstance.get<ApiResponse<PaginatedResponse<Tour>>>(
         API_PATHS.TOURS.LIST,
         { params }
       );
       
-     if (!response.data.success || !response.data.data?.items) {
-  console.error('Invalid tours response:', response.data);
-  throw new Error(response.data.message || 'Failed to fetch tours');
-}
-
-return response.data.data.items;
-
+      if (response.data && response.data.success) {
+        return response.data.data?.items || [];
+      }
+      return [];
     } catch (error: any) {
       console.error('Failed to fetch tours:', error);
-      // Re-throw the error with a user-friendly message
-      throw new Error(error?.response?.data?.message || 'Failed to load tours. Please try again later.');
+      // Return an empty array on error to prevent crashes in the UI
+      return [];
     }
   },
 

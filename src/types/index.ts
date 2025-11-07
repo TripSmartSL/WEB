@@ -22,7 +22,7 @@ export interface AuthContextType {
 // ========================================
 
 export interface Tour {
-  id: number;
+  id: string;
   name: string;
   category: string;
   location: string;

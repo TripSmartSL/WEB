@@ -15,11 +15,19 @@ const Tours = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ Fetch categories once
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await tourService.getCategories();
-        setCategories(data);
+        const data :any = await tourService.getCategories();
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else if (data?.data && Array.isArray(data.data)) {
+          setCategories(data.data);
+        } else {
+          console.warn("Invalid categories response:", data);
+          setCategories([]);
+        }
       } catch (err) {
         console.error("Failed to fetch categories:", err);
         setError("Failed to load tour categories");
@@ -29,19 +37,30 @@ const Tours = () => {
     fetchCategories();
   }, []);
 
+  // ✅ Fetch tours when category or search changes
   useEffect(() => {
     const fetchTours = async () => {
       try {
         setLoading(true);
-        const data = await tourService.getTours({
+        const data:any = await tourService.getTours({
           category: selectedCategory !== "all" ? selectedCategory : undefined,
-          search: searchQuery || undefined
+          search: searchQuery || undefined,
         });
-        setTours(data);
+
+        if (Array.isArray(data)) {
+          setTours(data);
+        } else if (data?.data && Array.isArray(data.data)) {
+          setTours(data.data);
+        } else {
+          console.warn("Invalid tours response:", data);
+          setTours([]);
+        }
+
         setError(null);
       } catch (err) {
         console.error("Failed to fetch tours:", err);
         setError("Failed to load tours. Please try again later.");
+        setTours([]);
       } finally {
         setLoading(false);
       }
@@ -50,7 +69,9 @@ const Tours = () => {
     fetchTours();
   }, [selectedCategory, searchQuery]);
 
-  const filteredTours = tours;
+  // ✅ Always use fallback array
+  const filteredTours = tours || [];
+  const safeCategories = categories || [];
 
   return (
     <div className="min-h-screen py-12">
@@ -92,16 +113,24 @@ const Tours = () => {
               key="all"
               variant={selectedCategory === "all" ? "default" : "outline"}
               onClick={() => setSelectedCategory("all")}
-              className={selectedCategory === "all" ? "bg-gradient-primary hover:shadow-glow" : ""}
+              className={
+                selectedCategory === "all" ? "bg-gradient-primary hover:shadow-glow" : ""
+              }
             >
               All Tours
             </Button>
-            {categories.map((category) => (
+
+            {/* ✅ Safe map */}
+            {safeCategories.map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 onClick={() => setSelectedCategory(category)}
-                className={selectedCategory === category ? "bg-gradient-primary hover:shadow-glow" : ""}
+                className={
+                  selectedCategory === category
+                    ? "bg-gradient-primary hover:shadow-glow"
+                    : ""
+                }
               >
                 {category}
               </Button>
@@ -116,7 +145,8 @@ const Tours = () => {
           transition={{ delay: 0.2 }}
           className="mb-6 text-center text-muted-foreground"
         >
-          {filteredTours.length} {filteredTours.length === 1 ? "tour" : "tours"} found
+          {filteredTours.length}{" "}
+          {filteredTours.length === 1 ? "tour" : "tours"} found
         </motion.div>
 
         {/* Tours Grid */}
@@ -139,12 +169,12 @@ const Tours = () => {
           </motion.div>
         ) : filteredTours.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredTours.map((tour, index) => (
+            {filteredTours.map((tour) => (
               <motion.div
                 key={tour.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ duration: 0.3 }}
               >
                 <TourCard tour={tour} />
               </motion.div>
