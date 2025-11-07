@@ -9,11 +9,17 @@ interface HotelsListParams {
   limit?: number;
 }
 
-interface HotelsListResponse {
-  hotels: Hotel[];
-  total: number;
-  page: number;
-  totalPages: number;
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+}
+
+interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    total: number;
+  };
 }
 
 interface AvailabilityParams {
@@ -32,11 +38,15 @@ interface AvailabilityResponse {
 export const hotelService = {
   // Get all hotels with filters
   async getHotels(params?: HotelsListParams): Promise<Hotel[]> {
-    const response = await axiosInstance.get<HotelsListResponse>(
+    const response = await axiosInstance.get<ApiResponse<PaginatedResponse<Hotel>>>(
       API_PATHS.HOTELS.LIST,
       { params }
     );
-    return response.data.hotels;
+    if (response.data && response.data.success) {
+      return response.data.data.items || [];
+    }
+    // Return an empty array on failure to prevent crashes
+    return [];
   },
 
   // Get single hotel by ID

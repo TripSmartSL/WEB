@@ -43,12 +43,12 @@ const Hotels = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, selectedCity]);
 
-  const cities = ['all', ...Array.from(new Set(hotels.map(h => h.city)))];
+  const cities = ['all', ...Array.from(new Set((hotels || []).map(h => h.city)))];
   const filteredHotels = hotels;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-subtle">
-      <Navbar />
+      
       
       <main className="flex-1">
         {/* Hero Section */}
@@ -134,7 +134,7 @@ const Hotels = () => {
         </section>
       </main>
 
-      <Footer />
+    
     </div>
   );
 };
