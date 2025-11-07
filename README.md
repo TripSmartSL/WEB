@@ -1,18 +1,11 @@
-# Welcome to your Lovable project
-
 ## Project info
-
-**URL**: https://lovable.dev/projects/63b3ad12-dc7e-4134-ba5d-d74c3d3a621e
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/63b3ad12-dc7e-4134-ba5d-d74c3d3a621e) and start prompting.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+The only requirement is having Node.js & npm installed
 
 Follow these steps:
 
