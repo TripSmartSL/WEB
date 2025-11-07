@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TourCard from "@/components/TourCard";
@@ -14,20 +14,16 @@ const Tours = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [toursPerPage] = useState(9); // Display 9 tours per page
+  const [totalTours, setTotalTours] = useState(0);
 
   // ✅ Fetch categories once
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data :any = await tourService.getCategories();
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else if (data?.data && Array.isArray(data.data)) {
-          setCategories(data.data);
-        } else {
-          console.warn("Invalid categories response:", data);
-          setCategories([]);
-        }
+        const data = await tourService.getCategories(); // This now directly returns string[]
+        setCategories(data);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
         setError("Failed to load tour categories");
@@ -42,19 +38,15 @@ const Tours = () => {
     const fetchTours = async () => {
       try {
         setLoading(true);
-        const data:any = await tourService.getTours({
+        const response = await tourService.getTours({
           category: selectedCategory !== "all" ? selectedCategory : undefined,
           search: searchQuery || undefined,
+          page: currentPage,
+          limit: toursPerPage,
         });
 
-        if (Array.isArray(data)) {
-          setTours(data);
-        } else if (data?.data && Array.isArray(data.data)) {
-          setTours(data.data);
-        } else {
-          console.warn("Invalid tours response:", data);
-          setTours([]);
-        }
+        setTours(response.tours || []);
+        setTotalTours(response.pagination.total);
 
         setError(null);
       } catch (err) {
@@ -67,7 +59,12 @@ const Tours = () => {
     };
 
     fetchTours();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, currentPage, toursPerPage]);
+
+  const totalPages = Math.ceil(totalTours / toursPerPage);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   // ✅ Always use fallback array
   const filteredTours = tours || [];
@@ -191,6 +188,32 @@ const Tours = () => {
             </p>
           </motion.div>
         )}
+
+        {/* Pagination Controls */}
+        {!loading && !error && totalTours > toursPerPage && (
+          <div className="flex justify-center items-center space-x-2 mt-12">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
       </div>
     </div>
   );

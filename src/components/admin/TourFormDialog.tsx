@@ -11,7 +11,7 @@ import type { Tour, DayItinerary, TourFormDialogProps } from '@/types';
 
 const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProps) => {
   const [formData, setFormData] = useState<Tour>({
-    id: 0,
+    id: '0',
     name: '',
     category: '',
     location: '',
@@ -40,7 +40,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
       setFormData(tour);
     } else {
       setFormData({
-        id: Date.now(),
+        id: '0', // Use 0 or a temporary ID for new tours
         name: '',
         category: '',
         location: '',

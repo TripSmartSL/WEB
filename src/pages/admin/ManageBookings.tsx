@@ -123,7 +123,7 @@ const ManageBookings = () => {
         setError(null);
         
         // Fetch both tour and hotel bookings
-        const [tourBookings, hotelBookings] = await Promise.all([
+        const [tourBookingsResponse, hotelBookingsResponse] = await Promise.all([
           bookingService.getTourBookings().catch(err => {
             if (err?.response?.status === 404) return [];
             throw err;
@@ -134,8 +134,11 @@ const ManageBookings = () => {
           })
         ]);
 
+        const tourBookings = tourBookingsResponse || [];
+        const hotelBookings = hotelBookingsResponse || [];
+
         // Combine and transform the bookings
-        const transformedTourBookings = tourBookings.map(booking => ({
+        const transformedTourBookings = tourBookings.map((booking: Booking) => ({
           ...booking,
           type: 'tour' as const,
           displayName: booking.name,
@@ -144,7 +147,7 @@ const ManageBookings = () => {
           displayService: booking.tour,
         }));
 
-        const transformedHotelBookings = hotelBookings.map(booking => ({
+        const transformedHotelBookings = hotelBookings.map((booking: HotelBooking) => ({
           ...booking,
           type: 'hotel' as const,
           displayName: booking.userName || 'Guest',
@@ -266,5 +269,3 @@ const ManageBookings = () => {
 };
 
 export default ManageBookings;
-
-

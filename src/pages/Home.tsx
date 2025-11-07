@@ -23,13 +23,13 @@ const Home = () => {
         setError(null);
 
         // Get featured tours and reviews in parallel
-        const [toursData, reviewsData] = await Promise.all([
+        const [toursResponse, reviewsData] = await Promise.all([
           tourService.getTours({ featured: true, limit: 3 }), // Get only featured tours
           reviewService.getAllReviews({ limit: 10, minRating: 4 }) // Get well-rated reviews
         ]);
 
         // Set featured tours
-        setFeaturedTours(toursData);
+        setFeaturedTours(toursResponse?.tours || []); // Access the tours array from the paginated response
 
         // Process and set testimonials
         if (reviewsData.items && reviewsData.items.length > 0) {

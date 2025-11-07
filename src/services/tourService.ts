@@ -18,56 +18,57 @@ interface ApiResponse<T> {
 }
 
 interface PaginatedResponse<T> {
-  items: Tour[];
+  tours: T[]; // Based on your tour.repository.ts, the key is 'tours'
   pagination: {
     total: number;
   };
 }
 
 export const tourService = {
-  // Get all tours with filters
-  async getTours(params?: ToursListParams): Promise<Tour[]> {
+  // Get all tours with filters, now returning full paginated response
+  async getTours(params?: ToursListParams): Promise<PaginatedResponse<Tour>> {
     try {
-      const response = await axiosInstance.get<ApiResponse<PaginatedResponse<Tour>>>(
+      const response = await axiosInstance.get<ApiResponse<PaginatedResponse<Tour>>>( // The backend returns a paginated response
         API_PATHS.TOURS.LIST,
         { params }
       );
       
       if (response.data && response.data.success) {
-        return response.data.data?.items || [];
+        return response.data.data;
       }
-      return [];
+      // Return an empty paginated response on failure or no data
+      return { tours: [], pagination: { total: 0 } };
     } catch (error: any) {
       console.error('Failed to fetch tours:', error);
       // Return an empty array on error to prevent crashes in the UI
-      return [];
+      return { tours: [], pagination: { total: 0 } };
     }
   },
 
   // Get single tour by ID
   async getTourById(id: string): Promise<Tour | undefined> {
-    const response = await axiosInstance.get<Tour>(
+    const response = await axiosInstance.get<ApiResponse<Tour>>(
       API_PATHS.TOURS.DETAIL(id)
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Create new tour (Admin)
-  async createTour(tourData: Omit<Tour, 'id'>): Promise<Tour> {
-    const response = await axiosInstance.post<Tour>(
+  async createTour(tourData: Omit<Tour, 'id' | 'rating' | 'reviewsCount'>): Promise<Tour> {
+    const response = await axiosInstance.post<ApiResponse<Tour>>(
       API_PATHS.TOURS.CREATE,
       tourData
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Update tour (Admin)
   async updateTour(id: string, tourData: Partial<Tour>): Promise<Tour> {
-    const response = await axiosInstance.put<Tour>(
+    const response = await axiosInstance.put<ApiResponse<Tour>>(
       API_PATHS.TOURS.UPDATE(id),
       tourData
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Delete tour (Admin)

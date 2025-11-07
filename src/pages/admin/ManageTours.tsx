@@ -1,34 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import TourFormDialog from '@/components/admin/TourFormDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Edit, Trash2, Plus, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import toursData from '@/data/tours.json';
-import type { Tour, DayItinerary } from '@/types';
+import { tourService } from '@/services/tourService';
+import type { Tour } from '@/types';
 
 const ManageTours = () => {
-  const [tours, setTours] = useState<Tour[]>(toursData);
+  const [tours, setTours] = useState<Tour[]>([]);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingTour, setEditingTour] = useState<Tour | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [tourToDelete, setTourToDelete] = useState<Tour | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [toursPerPage] = useState(10); // You can make this configurable
+  const [totalTours, setTotalTours] = useState(0);
 
-  const handleDelete = (id: number) => {
-    setTours(tours.filter(t => t.id !== id));
-    toast.success('Tour deleted successfully');
+  const fetchTours = async () => {
+    try {
+      setLoading(true);
+      const response = await tourService.getTours({
+        page: currentPage,
+        limit: toursPerPage,
+      });
+      setTours(response.tours || []);
+      setTotalTours(response.pagination.total);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch tours:', err);
+      setError('Failed to load tours. Please try again later.');
+      toast.error('Failed to load tours.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveTour = (tour: Tour) => {
-    if (editingTour) {
-      setTours(tours.map(t => t.id === tour.id ? tour : t));
-    } else {
-      setTours([...tours, tour]);
+  useEffect(() => {
+    fetchTours();
+  }, [currentPage, toursPerPage]); // Re-fetch when page or limit changes
+
+  const handleDelete = async () => {
+    if (!tourToDelete) return;
+
+    try {
+      await tourService.deleteTour(String(tourToDelete.id));
+      toast.success(`Tour "${tourToDelete.name}" deleted successfully`);
+      setDeleteConfirmationOpen(false);
+      setTourToDelete(null);
+      fetchTours(); // Refetch tours
+    } catch (err) {
+      console.error('Failed to delete tour:', err);
+      toast.error('Failed to delete tour.');
     }
-    setEditingTour(null);
+  };
+
+  const handleSaveTour = async (tourData: Tour) => {
+    try {
+      if (editingTour) {
+        // The id is a number, but the service expects a string
+        await tourService.updateTour(String(editingTour.id), tourData);
+        toast.success('Tour updated successfully');
+      } else {
+        // For creation, we omit the ID as the backend will generate it.
+        const { id, ...creationData } = tourData;
+        await tourService.createTour(creationData);
+        toast.success('Tour created successfully');
+      }
+      setFormDialogOpen(false);
+      setEditingTour(null);
+      fetchTours(); // Refetch to see changes
+    } catch (err) {
+      console.error('Failed to save tour:', err);
+      toast.error('Failed to save tour. Please check the details and try again.');
+    }
   };
 
   const handleEdit = (tour: Tour) => {
@@ -39,6 +91,11 @@ const ManageTours = () => {
   const handleAddNew = () => {
     setEditingTour(null);
     setFormDialogOpen(true);
+  };
+
+  const openDeleteConfirmation = (tour: Tour) => {
+    setTourToDelete(tour);
+    setDeleteConfirmationOpen(true);
   };
 
   return (
@@ -58,6 +115,24 @@ const ManageTours = () => {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
+              {loading && (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              {error && !loading && (
+                <div className="flex justify-center items-center h-64 text-destructive">
+                  {error}
+                </div>
+              )}
+              {!loading && !error && tours.length === 0 && (
+                <div className="flex justify-center items-center h-64 text-muted-foreground">
+                  No tours found.
+                </div>
+              )}
+              {!loading && !error && tours.length > 0 && (
+
+              
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -71,7 +146,7 @@ const ManageTours = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tours.map((tour) => (
+                  {tours.map((tour: Tour) => (
                     <TableRow key={tour.id}>
                       <TableCell className="font-medium">#{tour.id}</TableCell>
                       <TableCell>
@@ -179,10 +254,7 @@ const ManageTours = () => {
                                     <Button 
                                       variant="destructive" 
                                       className="gap-2"
-                                      onClick={() => {
-                                        handleDelete(selectedTour.id);
-                                        setSelectedTour(null);
-                                      }}
+                                      onClick={() => openDeleteConfirmation(selectedTour)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       Delete Tour
@@ -202,7 +274,7 @@ const ManageTours = () => {
                           <Button 
                             variant="outline" 
                             size="icon"
-                            onClick={() => handleDelete(tour.id)}
+                            onClick={() => openDeleteConfirmation(tour)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -212,7 +284,31 @@ const ManageTours = () => {
                   ))}
                 </TableBody>
               </Table>
+              )}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && !error && totalTours > toursPerPage && (
+              <div className="flex justify-center items-center space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {Math.ceil(totalTours / toursPerPage)}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage * toursPerPage >= totalTours}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -223,6 +319,25 @@ const ManageTours = () => {
         tour={editingTour}
         onSave={handleSaveTour}
       />
+
+      <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the tour "{tourToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmationOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
