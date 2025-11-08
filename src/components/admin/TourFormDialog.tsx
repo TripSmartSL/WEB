@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
-import { X, Plus, GripVertical, Upload } from 'lucide-react';
+import { tourService } from '@/services/tourService';
+import { X, Plus, GripVertical, UploadCloud } from 'lucide-react';
 import type { Tour, DayItinerary, TourFormDialogProps } from '@/types';
 
 const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProps) => {
@@ -19,7 +21,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
     duration: '',
     rating: 5.0,
     reviewsCount: 0,
-    images: ['/placeholder.svg'],
+    images: [],
     description: '',
     highlights: [''],
     included: [''],
@@ -33,11 +35,29 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
     }],
   });
 
+  const [imageFiles, setImageFiles] = useState<(File | string)[]>([]);
   const [draggedImage, setDraggedImage] = useState<number | null>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+  const onDrop = (acceptedFiles: File[]) => {
+    const newImageFiles = [...imageFiles, ...acceptedFiles];
+    setImageFiles(newImageFiles);
+
+    // This part is for demonstration. In a real app, you would upload the files
+    // and get back URLs to save in formData.images.
+    const newImageUrls = acceptedFiles.map(file => URL.createObjectURL(file));
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...newImageUrls]
+    }));
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
 
   useEffect(() => {
     if (tour) {
       setFormData(tour);
+      setImageFiles(tour.images);
     } else {
       setFormData({
         id: '0', // Use 0 or a temporary ID for new tours
@@ -48,7 +68,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
         duration: '',
         rating: 5.0,
         reviewsCount: 0,
-        images: ['/placeholder.svg'],
+        images: [],
         description: '',
         highlights: [''],
         included: [''],
@@ -61,14 +81,36 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
           accommodation: ''
         }],
       });
+      setImageFiles([]);
     }
   }, [tour, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    toast.success(tour ? 'Tour updated successfully' : 'Tour created successfully');
-    onOpenChange(false);
+
+    try {
+      const uploadedImageUrls = await Promise.all(
+        imageFiles.map(async (fileOrUrl) => {
+          // If it's a File object, it's a new image that needs to be uploaded.
+          if (fileOrUrl instanceof File) {
+            const uploadResponse = await tourService.uploadImage(fileOrUrl);
+            return uploadResponse.url; // Just use the relative path from the API
+          }
+          // If it's a string, it's an existing image URL. Keep it.
+          return fileOrUrl;
+        })
+      );
+
+      const finalTourData = {
+        ...formData,
+        images: uploadedImageUrls,
+      };
+
+      await onSave(finalTourData);
+    } catch (error) {
+      console.error('Failed to upload images or save tour:', error);
+      toast.error('Failed to save tour. Please check image uploads and try again.');
+    }
   };
 
   const handleArrayChange = (field: 'highlights' | 'included', index: number, value: string) => {
@@ -134,19 +176,19 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
     setFormData({ ...formData, itinerary: newItinerary });
   };
 
-  const addImage = () => {
-    setFormData({ ...formData, images: [...formData.images, ''] });
-  };
-
   const removeImage = (index: number) => {
-    const newImages = formData.images.filter((_, i) => i !== index);
-    setFormData({ ...formData, images: newImages.length ? newImages : ['/placeholder.svg'] });
-  };
+    const newImageFiles = imageFiles.filter((_, i) => i !== index);
+    setImageFiles(newImageFiles);
 
-  const updateImage = (index: number, value: string) => {
-    const newImages = [...formData.images];
-    newImages[index] = value;
-    setFormData({ ...formData, images: newImages });
+    // Also update the formData.images which holds the URLs
+    const newImageUrls = formData.images.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, images: newImageUrls }));
+
+    // If the removed image was a blob URL, revoke it to free memory
+    const imageToRemove = formData.images[index];
+    if (imageToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove);
+    }
   };
 
   const handleDragStart = (index: number) => {
@@ -160,12 +202,18 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
   const handleDrop = (index: number) => {
     if (draggedImage === null) return;
     
-    const newImages = [...formData.images];
-    const draggedItem = newImages[draggedImage];
-    newImages.splice(draggedImage, 1);
-    newImages.splice(index, 0, draggedItem);
+    const newImageFiles = [...imageFiles];
+    const draggedFile = newImageFiles[draggedImage];
+    newImageFiles.splice(draggedImage, 1);
+    newImageFiles.splice(index, 0, draggedFile);
+    setImageFiles(newImageFiles);
     
-    setFormData({ ...formData, images: newImages });
+    const newImageUrls = [...formData.images];
+    const draggedUrl = newImageUrls[draggedImage];
+    newImageUrls.splice(draggedImage, 1);
+    newImageUrls.splice(index, 0, draggedUrl);
+    
+    setFormData({ ...formData, images: newImageUrls });
     setDraggedImage(null);
   };
 
@@ -263,39 +311,51 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
           {/* Images with Drag and Drop */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Tour Images</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {formData.images.map((image, index) => (
+            <div 
+              {...getRootProps()} 
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}
+            >
+              <input {...getInputProps()} />
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <UploadCloud className="h-8 w-8" />
+                {isDragActive ? (
+                  <p>Drop the files here ...</p>
+                ) : (
+                  <p>Drag & drop some files here, or click to select files</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {imageFiles.map((file, index) => {
+                let imageUrl = '';
+                if (file instanceof File) {
+                  imageUrl = URL.createObjectURL(file);
+                } else if (typeof file === 'string' && file) {
+                  imageUrl = file.startsWith('blob:') ? file : `${API_BASE_URL}${file}`;
+                }
+                return (
                 <div
                   key={index}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(index)}
-                  className="flex gap-2 items-center p-2 border rounded-lg bg-muted/50 cursor-move hover:bg-muted transition-colors"
+                  className="relative group aspect-square border rounded-lg overflow-hidden cursor-move"
                 >
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1 flex gap-2">
-                    <Input
-                      value={image}
-                      onChange={(e) => updateImage(index, e.target.value)}
-                      placeholder="Image URL"
-                    />
+                  <img src={imageUrl} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeImage(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeImage(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
-              ))}
+              )})}
             </div>
-            <Button type="button" variant="outline" onClick={addImage} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Image
-            </Button>
           </div>
 
           {/* Highlights */}

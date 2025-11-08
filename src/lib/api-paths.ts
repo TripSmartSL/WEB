@@ -85,4 +85,9 @@ export const API_PATHS = {
     INCOME: '/analytics/income',
     BOOKINGS: '/analytics/bookings',
   },
+
+  // Upload endpoints
+  UPLOAD: {
+    IMAGE: '/upload/image',
+  },
 } as const;

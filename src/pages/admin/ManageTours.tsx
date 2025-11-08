@@ -24,6 +24,7 @@ const ManageTours = () => {
   const [toursPerPage] = useState(10); // You can make this configurable
   const [totalTours, setTotalTours] = useState(0);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const fetchTours = async () => {
     try {
       setLoading(true);
@@ -152,7 +153,8 @@ const ManageTours = () => {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <img 
-                            src={tour.image} 
+                            src={tour.image ? `${API_BASE_URL}${tour.image}` : '/placeholder.svg'} 
+
                             alt={tour.name}
                             className="w-12 h-12 rounded object-cover"
                           />
@@ -188,8 +190,8 @@ const ManageTours = () => {
                               </DialogHeader>
                               {selectedTour && (
                                 <div className="space-y-4">
-                                  <img 
-                                    src={selectedTour.image} 
+                                  <img
+                                    src={selectedTour.image ? `${API_BASE_URL}${selectedTour.image}` : '/placeholder.svg'}
                                     alt={selectedTour.name}
                                     className="w-full h-64 object-cover rounded-lg"
                                   />

@@ -83,4 +83,17 @@ export const tourService = {
     );
     return response.data.categories;
   },
+
+  // Upload an image
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axiosInstance.post<ApiResponse<{ url: string }>>(
+      API_PATHS.UPLOAD.IMAGE, // You'll need to add this path to your api-paths.ts
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return response.data.data;
+  },
 };
