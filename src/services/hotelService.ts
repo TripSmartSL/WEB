@@ -16,7 +16,7 @@ interface ApiResponse<T> {
 }
 
 interface PaginatedResponse<T> {
-  items: T[];
+  hotels: T[];
   pagination: {
     total: number;
   };
@@ -37,16 +37,16 @@ interface AvailabilityResponse {
 
 export const hotelService = {
   // Get all hotels with filters
-  async getHotels(params?: HotelsListParams): Promise<Hotel[]> {
+  async getHotels(params?: HotelsListParams): Promise<PaginatedResponse<Hotel>> {
     const response = await axiosInstance.get<ApiResponse<PaginatedResponse<Hotel>>>(
       API_PATHS.HOTELS.LIST,
       { params }
     );
     if (response.data && response.data.success) {
-      return response.data.data.items || [];
+      return response.data.data;
     }
     // Return an empty array on failure to prevent crashes
-    return [];
+    return { hotels: [], pagination: { total: 0 } };
   },
 
   // Get single hotel by ID
