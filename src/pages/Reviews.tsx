@@ -37,7 +37,7 @@ const Reviews = () => {
           tourService.getTours()
         ]);
         setReviews(reviewsData.items);
-        setTours(toursData.tours); // Access the tours array from the paginated response
+        setTours(toursData.tours ?? []); // Access the tours array, fallback to empty array
         setError(null);
       } catch (err) {
         console.error('Failed to fetch reviews:', err);
