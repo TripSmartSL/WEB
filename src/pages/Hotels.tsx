@@ -24,7 +24,7 @@ const Hotels = () => {
           search: searchTerm,
           city: selectedCity !== 'all' ? selectedCity : undefined,
         });
-        setHotels(data);
+        setHotels(data.hotels);
       } catch (error: any) {
         console.error('Failed to fetch hotels:', error);
         if (error.response?.status === 401) {
@@ -44,7 +44,7 @@ const Hotels = () => {
   }, [searchTerm, selectedCity]);
 
   const cities = ['all', ...Array.from(new Set((hotels || []).map(h => h.city)))];
-  const filteredHotels = hotels;
+  const filteredHotels = hotels || [];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-subtle">
