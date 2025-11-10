@@ -219,6 +219,9 @@ apiClient.interceptors.response.use(
         case 403:
           toast.error('Access denied. You do not have permission.');
           break;
+        case 409: // Conflict
+          toast.error('Access denied. You do not have permission.');
+          break;
         case 404:
           if (import.meta.env.DEV) {
             toast.error('Resource not found.');

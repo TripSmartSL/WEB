@@ -115,16 +115,27 @@ export const reviewService = {
   },
 
   async createReview(reviewData: CreateReviewData): Promise<Review | HotelReview> {
-    const response = await axiosInstance.post<ApiResponse<Review | HotelReview>>(
-      API_PATHS.REVIEWS.CREATE,
-      reviewData
-    );
-    
-    if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to create review');
+    try {
+      const response = await axiosInstance.post<ApiResponse<Review | HotelReview>>(
+        API_PATHS.REVIEWS.CREATE,
+        reviewData
+      );
+      
+      if (!response.data.success) {
+        // This handles cases where the server returns 200 OK but indicates failure in the body.
+        throw new Error(response.data.message || 'Failed to create review');
+      }
+      
+      return response.data.data;
+    } catch (error: any) {
+      // Standardize the error format to be thrown, so UI components can reliably access the message.
+      if (error.response) {
+        // Re-throw with a consistent error structure.
+        // The backend sends the message in `error.response.data.error`.
+        throw { response: { ...error.response, data: { message: error.response.data.error || 'An unknown error occurred' } } };
+      }
+      throw error;
     }
-    
-    return response.data.data;
   },
 
   async updateReview(id: string | number, data: Partial<Review | HotelReview>) {

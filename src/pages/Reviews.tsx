@@ -21,7 +21,6 @@ const Reviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '', // Although handled by auth, keep for form state
     tourId: '',
     rating: 5,
     comment: ''
@@ -59,21 +58,29 @@ const Reviews = () => {
         comment: formData.comment,
       });
       
-      setReviews(prev => [review as Review, ...prev]);
+      setReviews(prev => [review, ...prev]);
       setIsReviewOpen(false);
-      setFormData({ name: '', tourId: '', rating: 5, comment: '' });
+      setFormData({ tourId: '', rating: 5, comment: '' });
       
       toast({
         title: "Review Submitted!",
         description: "Thank you for sharing your experience with us.",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit review:', err);
-      toast({
-        title: "Error",
-        description: "Failed to submit review. Please try again.",
-        variant: "destructive"
-      });
+      if (err.response?.status === 409) {
+        toast({
+          title: "Already Reviewed",
+          description: "You have already submitted a review for this tour.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit review. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -174,16 +181,6 @@ const Reviews = () => {
             <DialogTitle>Write a Review</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleReview} className="space-y-4">
-            <div>
-              <Label htmlFor="reviewName">Your Name</Label>
-              <Input
-                id="reviewName"
-                value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Your Name (for display only)"
-                required
-              />
-            </div>
             <div>
               <Label htmlFor="tourName">Tour Name</Label>
               <Select 

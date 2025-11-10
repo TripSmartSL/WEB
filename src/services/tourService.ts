@@ -47,53 +47,83 @@ export const tourService = {
 
   // Get single tour by ID
   async getTourById(id: string): Promise<Tour | undefined> {
-    const response = await axiosInstance.get<ApiResponse<Tour>>(
-      API_PATHS.TOURS.DETAIL(id)
-    );
-    return response.data.data;
+    try {
+      const response = await axiosInstance.get<ApiResponse<Tour>>(
+        API_PATHS.TOURS.DETAIL(id)
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error(`Failed to fetch tour with id ${id}:`, error);
+      throw error; // Re-throw for the component to handle
+    }
   },
 
   // Create new tour (Admin)
   async createTour(tourData: Omit<Tour, 'id' | 'rating' | 'reviewsCount'>): Promise<Tour> {
-    const response = await axiosInstance.post<ApiResponse<Tour>>(
-      API_PATHS.TOURS.CREATE,
-      tourData
-    );
-    return response.data.data;
+    try {
+      const response = await axiosInstance.post<ApiResponse<Tour>>(
+        API_PATHS.TOURS.CREATE,
+        tourData
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to create tour:', error);
+      throw error; // Re-throw for the component to handle
+    }
   },
 
   // Update tour (Admin)
   async updateTour(id: string, tourData: Partial<Tour>): Promise<Tour> {
-    const response = await axiosInstance.put<ApiResponse<Tour>>(
-      API_PATHS.TOURS.UPDATE(id),
-      tourData
-    );
-    return response.data.data;
+    try {
+      const response = await axiosInstance.put<ApiResponse<Tour>>(
+        API_PATHS.TOURS.UPDATE(id),
+        tourData
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error(`Failed to update tour with id ${id}:`, error);
+      throw error; // Re-throw for the component to handle
+    }
   },
 
   // Delete tour (Admin)
   async deleteTour(id: string): Promise<void> {
-    await axiosInstance.delete(API_PATHS.TOURS.DELETE(id));
+    try {
+      await axiosInstance.delete(API_PATHS.TOURS.DELETE(id));
+    } catch (error) {
+      console.error(`Failed to delete tour with id ${id}:`, error);
+      throw error; // Re-throw for the component to handle
+    }
   },
 
   // Get tour categories
   async getCategories(): Promise<string[]> {
-    const response = await axiosInstance.get<{ categories: string[] }>(
-      API_PATHS.TOURS.CATEGORIES
-    );
-    return response.data.categories;
+    try {
+      const response = await axiosInstance.get<{ categories: string[] }>(
+        API_PATHS.TOURS.CATEGORIES
+      );
+      return response.data.categories;
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      return []; // Return empty array on error
+    }
   },
 
   // Upload an image
   async uploadImage(file: File): Promise<{ url: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const response = await axiosInstance.post<ApiResponse<{ url: string }>>(
-      API_PATHS.UPLOAD.IMAGE, // You'll need to add this path to your api-paths.ts
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
-    return response.data.data;
+      const response = await axiosInstance.post<ApiResponse<{ url: string }>>(
+        API_PATHS.UPLOAD.IMAGE, // You'll need to add this path to your api-paths.ts
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      throw error; // Re-throw for the component to handle
+    }
   },
 };

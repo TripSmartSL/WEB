@@ -33,7 +33,7 @@ const TourCard = ({ tour }: TourCardProps) => {
             <h3 className="font-semibold text-lg line-clamp-2">{tour.name}</h3>
             <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded">
               <Star className="h-4 w-4 fill-primary text-primary" />
-              <span className="font-semibold text-sm">{tour.rating}</span>
+              <span className="font-semibold text-sm">{Math.floor(Number(tour.rating))}</span>
             </div>
           </div>
           <div className="flex items-center justify-between pt-3 border-t">
@@ -49,4 +49,3 @@ const TourCard = ({ tour }: TourCardProps) => {
 };
 
 export default TourCard;
-

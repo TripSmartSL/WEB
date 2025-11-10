@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { tourService } from "@/services/tourService";
 import { reviewService } from "@/services/reviewService";
 import type { Tour, Review } from "@/types";
+import { getImageUrl } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TourDetails = () => {
@@ -28,7 +29,6 @@ const TourDetails = () => {
   const [tour, setTour] = useState<Tour | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewFormData, setReviewFormData] = useState({
-    name: '',
     rating: 5,
     comment: ''
   });
@@ -47,7 +47,7 @@ const TourDetails = () => {
 
         if (tourData) {
           setTour(tourData);
-          setReviews(reviewsData);
+          setReviews(reviewsData.items);
           setError(null);
         } else {
           setError('Tour not found');
@@ -98,28 +98,44 @@ const TourDetails = () => {
     try {
       const review = await reviewService.createReview({
         tourId: id,
-        userName: reviewFormData.name,
         rating: reviewFormData.rating,
         comment: reviewFormData.comment
       });
 
       setReviews(prev => [review as Review, ...prev]);
       setIsReviewOpen(false);
-      setReviewFormData({ name: '', rating: 5, comment: '' });
+      setReviewFormData({ rating: 5, comment: '' });
       
       toast({
         title: "Review Submitted!",
         description: "Thank you for sharing your experience.",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit review:', err);
-      toast({
-        title: "Error",
-        description: "Failed to submit review. Please try again.",
-        variant: "destructive"
-      });
+      if (err.response?.status === 409) {
+        toast({
+          title: "Already Reviewed",
+          description: "You have already submitted a review for this tour.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit review. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
+
+  // Calculate rating from approved reviews
+  const approvedReviews = reviews.filter(review => review.status === 'approved');
+  const reviewsCount = approvedReviews.length;
+  const averageRating = reviewsCount > 0 
+    ? Math.floor(approvedReviews.reduce((acc, review) => acc + review.rating, 0) / reviewsCount)
+    : 0;
+
+
 
   const handleStopClick = (stopIndex: number) => {
     setSelectedStopIndex(stopIndex);
@@ -168,7 +184,7 @@ const TourDetails = () => {
             >
               <div className="relative h-96 rounded-2xl overflow-hidden shadow-card">
                 <img
-                  src={tour.images ? tour.images[selectedImageIndex] : tour.image}
+                  src={getImageUrl(tour.images && tour.images.length > 0 ? tour.images[selectedImageIndex] : tour.image)}
                   alt={tour.name}
                   className="w-full h-full object-cover"
                 />
@@ -185,8 +201,8 @@ const TourDetails = () => {
                       className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
                         selectedImageIndex === index ? 'border-primary' : 'border-transparent'
                       }`}
-                    >
-                      <img src={img} alt={`${tour.name} ${index + 1}`} className="w-full h-full object-cover" />
+                    > 
+                      <img src={getImageUrl(img)} alt={`${tour.name} ${index + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -211,8 +227,8 @@ const TourDetails = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Star className="h-5 w-5 fill-accent text-accent" />
-                  <span className="font-semibold text-foreground">{tour.rating}</span>
-                  <span>({tour.reviewsCount} reviews)</span>
+                  <span className="font-semibold text-foreground">{averageRating}</span>
+                  <span>({reviewsCount} reviews)</span>
                 </div>
               </div>
               <p className="text-lg leading-relaxed">{tour.description}</p>
@@ -491,15 +507,6 @@ const TourDetails = () => {
             <DialogTitle>Write a Review</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleReview} className="space-y-4">
-            <div>
-              <Label htmlFor="reviewName">Your Name</Label>
-              <Input 
-                id="reviewName"
-                value={reviewFormData.name}
-                onChange={(e) => setReviewFormData(prev => ({ ...prev, name: e.target.value }))}
-                required 
-              />
-            </div>
             <div>
               <Label htmlFor="rating">Rating</Label>
               <select 
