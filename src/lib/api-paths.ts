@@ -37,7 +37,7 @@ export const API_PATHS = {
     CREATE: '/bookings',
     UPDATE: (id: string) => `/bookings/${id}`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
-    USER_BOOKINGS: '/bookings/user',
+    USER_BOOKINGS: '/bookings/me',
   },
   
   // Hotel Booking endpoints
@@ -50,15 +50,11 @@ export const API_PATHS = {
     USER_BOOKINGS: '/hotel-bookings/user',
   },
   
-  // Review endpoints
-  // REVIEWS: {
-  //   LIST: '/reviews',
-  //   TOUR_REVIEWS: (tourId: string) => `/reviews/tour/${tourId}`,
-  //   HOTEL_REVIEWS: (hotelId: string) => `/reviews/hotel/${hotelId}`,
-  //   CREATE: '/reviews',
-  //   UPDATE: (id: string) => `/reviews/${id}`,
-  //   DELETE: (id: string) => `/reviews/${id}`,
-  // },
+  // Profile endpoints
+  PROFILES: {
+    ME: '/profiles/me',
+    UPDATE_ME: '/profiles/me',
+  },
 
   
   REVIEWS: {
