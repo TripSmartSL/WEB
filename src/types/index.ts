@@ -1,12 +1,16 @@
 // ========================================
 // Authentication Types
 // ========================================
-
 export interface User {
   id: string;
   email: string;
   name: string;
   role: 'admin' | 'user';
+  phone: string;
+  country: string;
+  avatarUrl: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AuthContextType {
