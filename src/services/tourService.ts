@@ -44,4 +44,21 @@ export const tourService = {
     const response = await axiosInstance.get<ApiResponse<Tour>>(API_PATHS.TOURS.DETAIL(id));
     return response.data.data;
   },
+  async createTour(tourData: Omit<Tour, 'id'>): Promise<Tour> {
+    const response = await axiosInstance.post<ApiResponse<Tour>>(API_PATHS.TOURS.CREATE, tourData);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to create tour');
+    }
+    return response.data.data;
+  },
+  async updateTour(id: string, tourData: Partial<Tour>): Promise<Tour> {
+    const response = await axiosInstance.put<ApiResponse<Tour>>(API_PATHS.TOURS.UPDATE(id), tourData);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to update tour');
+    }
+    return response.data.data;
+  },
+  async deleteTour(id: string): Promise<void> {
+    await axiosInstance.delete(API_PATHS.TOURS.DELETE(id));
+  },
 };
