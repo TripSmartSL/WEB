@@ -117,6 +117,7 @@ const StripePaymentForm = ({ clientSecret, amount, onSuccess, onCancel, bookingI
     appearance: {
       theme: 'stripe',
     },
+    loader: 'never', // This will hide the Stripe developer widget
   };
 
   return (
