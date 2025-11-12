@@ -135,6 +135,36 @@ export const bookingService = {
     return response.data.data;
   },
 
+  // Admin: Get all tour bookings
+  async getTourBookings(): Promise<any[]> {
+    const response = await axiosInstance.get<ApiResponse<{ items: any[] }>>(API_PATHS.BOOKINGS.LIST);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to fetch tour bookings');
+    }
+    return response.data.data.items;
+  },
+
+  // Admin: Get all hotel bookings (assuming a similar structure)
+  async getHotelBookings(): Promise<any[]> {
+    // This assumes you have an endpoint for hotel bookings. If not, this can be removed.
+    // For now, we'll return an empty array to prevent errors.
+    // const response = await axiosInstance.get<ApiResponse<{ items: any[] }>>(API_PATHS.HOTEL_BOOKINGS.LIST);
+    // if (!response.data.success) {
+    //   throw new Error(response.data.message || 'Failed to fetch hotel bookings');
+    // }
+    // return response.data.data.items;
+    return Promise.resolve([]); // Returning empty array as hotel bookings are not fully implemented
+  },
+
+  // Admin: Update tour booking status
+  async updateTourBooking(id: string, data: { status: string }): Promise<any> {
+    const response = await axiosInstance.put<ApiResponse<any>>(API_PATHS.BOOKINGS.UPDATE(id), data);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to update tour booking');
+    }
+    return response.data.data;
+  },
+
   async createBookingAndPaymentIntent(data: {
     tourId: string;
     date: string;
