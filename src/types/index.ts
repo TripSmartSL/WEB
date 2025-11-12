@@ -31,7 +31,7 @@ export interface Tour {
   category: string;
   location: string;
   duration: string;
-  price: number;
+  price: string; // Decimals from Prisma are often serialized as strings
   rating: number;
   reviewsCount: number;
   image?: string;
@@ -87,7 +87,7 @@ export interface Booking {
 }
 
 export interface UserBooking {
-  id: number;
+  id: string;
   tour: string;
   date: string;
   guests: number;
@@ -120,6 +120,8 @@ export interface StripePaymentFormProps {
   amount: number;
   onSuccess: () => void;
   onCancel: () => void;
+  clientSecret: string;
+  bookingId: string;
 }
 
 export interface CardDetails {

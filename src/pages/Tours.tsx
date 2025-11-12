@@ -22,8 +22,8 @@ const Tours = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await tourService.getCategories(); // This now directly returns string[]
-        setCategories(data);
+        const categoriesData = await tourService.getCategories();
+        setCategories(categoriesData || []);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
         setError("Failed to load tour categories");

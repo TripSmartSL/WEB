@@ -1,18 +1,32 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users, Mail, Phone, User } from "lucide-react";
+import { Calendar, Users, Mail, Phone, User, Loader2, PartyPopper } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
-import toursData from "@/data/tours.json";
+import { useLocation, useNavigate } from "react-router-dom";
 import StripePaymentForm from "@/components/StripePaymentForm";
+import { tourService } from "@/services/tourService";
+import { bookingService } from "@/services/bookingService";
+import type { Tour } from "@/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const Booking = () => {
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [loadingTours, setLoadingTours] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState<{ clientSecret: string; bookingId: string } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [bookingSummary, setBookingSummary] = useState<{
+    tour: Tour;
+    totalPrice: number;
+  } | null>(null);
+
   const [showPayment, setShowPayment] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -24,41 +38,87 @@ const Booking = () => {
   });
 
   useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        // Fetch ALL tours for the dropdown by setting a high limit
+        const response = await tourService.getTours({ limit: 1000 });
+        setTours(response.tours || []); // Correctly access the 'tours' array
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Could not fetch tours. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingTours(false);
+      }
+    };
+
+    fetchTours();
+  }, [toast]);
+
+  useEffect(() => {
     if (location.state?.tourId) {
       setFormData((prev) => ({ ...prev, tourId: String(location.state.tourId) }));
     }
-  }, [location]);
+  }, [location.state]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowPayment(true);
+    setIsProcessing(true);
+
+    // Use a type-insensitive comparison to prevent mismatches (e.g., '1' vs 1)
+    const currentTour = tours.find((t) => String(t.id) === String(formData.tourId));
+    if (!currentTour) {
+      toast({ title: "Error", description: "Please select a valid tour.", variant: "destructive" });
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const response = await bookingService.createBookingAndPaymentIntent({
+        ...formData,
+        guests: Number(formData.guests),
+        date: new Date(formData.date).toISOString(), // Ensure date is in a valid format
+      });
+      // Lock in the booking details for the payment form
+      setBookingSummary({ tour: currentTour, totalPrice: Number(currentTour.price) * Number(formData.guests) });
+      setPaymentInfo(response);
+      setShowPayment(true);
+    } catch (error) {
+      toast({
+        title: "Booking Failed",
+        description: "Could not initiate the booking process. Please check your details and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePaymentSuccess = () => {
-    toast({
-      title: "Booking Confirmed!",
-      description: "Your payment was successful. We'll send you a confirmation email shortly.",
-    });
+    setShowPayment(false);
+    setShowSuccessModal(true);
     setFormData({
       name: "",
       email: "",
       phone: "",
-      tourId: "",
+      tourId: formData.tourId, // Keep tour selected
       guests: "1",
       date: "",
     });
-    setShowPayment(false);
   };
 
   const handlePaymentCancel = () => {
     setShowPayment(false);
+    // Optionally, you could add logic here to cancel the pending booking on the backend.
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const selectedTour = toursData.find((t) => t.id === Number(formData.tourId));
+  const selectedTour = tours.find((t) => t.id === formData.tourId);
 
   return (
     <div className="min-h-screen py-12">
@@ -168,9 +228,9 @@ const Booking = () => {
                               required
                             >
                               <option value="">Choose a tour...</option>
-                              {toursData.map((tour) => (
+                              {tours.map((tour) => (
                                 <option key={tour.id} value={tour.id}>
-                                  {tour.name} - ${tour.price} per person
+                                  {tour.name} - ${Number(tour.price)} per person
                                 </option>
                               ))}
                             </select>
@@ -198,7 +258,8 @@ const Booking = () => {
                           size="lg"
                           className="w-full bg-gradient-sunset hover:shadow-glow"
                         >
-                          Proceed to Payment
+                          {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {isProcessing ? 'Processing...' : 'Proceed to Payment'}
                         </Button>
                       </form>
                     </CardContent>
@@ -216,7 +277,7 @@ const Booking = () => {
                         <>
                           <div className="aspect-video rounded-lg overflow-hidden">
                             <img
-                              src={selectedTour.image}
+                              src={selectedTour.image || '/placeholder.jpg'}
                               alt={selectedTour.name}
                               className="w-full h-full object-cover"
                             />
@@ -226,7 +287,7 @@ const Booking = () => {
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Price per person</span>
-                                <span className="font-medium">${selectedTour.price}</span>
+                                <span className="font-medium">${Number(selectedTour.price)}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Guests</span>
@@ -235,7 +296,7 @@ const Booking = () => {
                               <div className="flex justify-between pt-2 border-t">
                                 <span className="font-semibold">Total</span>
                                 <span className="font-bold text-primary text-lg">
-                                  ${selectedTour.price * Number(formData.guests)}
+                                  ${Number(selectedTour.price) * Number(formData.guests)}
                                 </span>
                               </div>
                             </div>
@@ -260,15 +321,38 @@ const Booking = () => {
               transition={{ duration: 0.3 }}
               className="max-w-lg mx-auto"
             >
-              <StripePaymentForm
-                amount={selectedTour ? selectedTour.price * Number(formData.guests) : 0}
-                onSuccess={handlePaymentSuccess}
-                onCancel={handlePaymentCancel}
-              />
+              {paymentInfo && bookingSummary && (
+                <StripePaymentForm
+                  clientSecret={paymentInfo.clientSecret}
+                  bookingId={paymentInfo.bookingId}
+                  amount={bookingSummary.totalPrice}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handlePaymentCancel}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <PartyPopper className="h-16 w-16 text-green-500" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Booking Confirmed!</DialogTitle>
+            <DialogDescription className="text-center">
+              Your payment was successful. Your adventure awaits! You can view your booking details in your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="w-full" onClick={() => navigate('/account')}>
+              Go to My Bookings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

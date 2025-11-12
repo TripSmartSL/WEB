@@ -134,4 +134,24 @@ export const bookingService = {
     }
     return response.data.data;
   },
+
+  async createBookingAndPaymentIntent(data: {
+    tourId: string;
+    date: string;
+    guests: number;
+    name: string;
+    email: string;
+    phone: string;
+  }): Promise<{ clientSecret: string; bookingId: string }> {
+    // This endpoint now creates the booking and the payment intent in one go.
+    const response = await axiosInstance.post<ApiResponse<{ clientSecret: string; bookingId: string }>>(API_PATHS.PAYMENTS.CREATE_INTENT, data);
+    
+    const responseData = response.data; // The payload is always in response.data
+
+    if (responseData?.success) {
+      return responseData.data;
+    } else {
+      throw new Error(responseData?.message || 'Failed to create payment intent');
+    }
+  },
 };
