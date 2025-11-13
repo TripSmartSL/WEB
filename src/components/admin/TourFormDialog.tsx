@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { tourService } from '@/services/tourService';
-import { X, Plus, GripVertical, UploadCloud } from 'lucide-react';
+import { X, Plus, UploadCloud, Search, Loader2 } from 'lucide-react';
 import type { Tour, DayItinerary, TourFormDialogProps } from '@/types';
 
 const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProps) => {
@@ -29,7 +29,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
     itinerary: [{
       day: 1,
       title: '',
-      stops: [{ name: '', duration: '', admissionIncluded: false, description: '' }],
+      stops: [{ name: '', duration: '', admissionIncluded: false, description: '', location: { lat: 0, lng: 0 } }],
       meals: [],
       accommodation: ''
     }],
@@ -37,6 +37,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
 
   const [imageFiles, setImageFiles] = useState<(File | string)[]>([]);
   const [draggedImage, setDraggedImage] = useState<number | null>(null);
+  const [geocodingStop, setGeocodingStop] = useState<string | null>(null); // To track which stop is being geocoded
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -76,7 +77,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
         itinerary: [{
           day: 1,
           title: '',
-          stops: [{ name: '', duration: '', admissionIncluded: false, description: '' }],
+          stops: [{ name: '', duration: '', admissionIncluded: false, description: '', location: { lat: 0, lng: 0 } }],
           meals: [],
           accommodation: ''
         }],
@@ -157,7 +158,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
 
   const addStop = (dayIndex: number) => {
     const newItinerary = [...formData.itinerary];
-    newItinerary[dayIndex].stops.push({ name: '', duration: '', admissionIncluded: false, description: '' });
+    newItinerary[dayIndex].stops.push({ name: '', duration: '', admissionIncluded: false, description: '', location: { lat: 0, lng: 0 } });
     setFormData({ ...formData, itinerary: newItinerary });
   };
 
@@ -169,11 +170,43 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
 
   const updateStop = (dayIndex: number, stopIndex: number, field: string, value: any) => {
     const newItinerary = [...formData.itinerary];
-    newItinerary[dayIndex].stops[stopIndex] = {
-      ...newItinerary[dayIndex].stops[stopIndex],
-      [field]: value
-    };
+    const stop = newItinerary[dayIndex].stops[stopIndex] as any;
+
+    if (field === 'lat' || field === 'lng') {
+      stop.location = { ...(stop.location || {}), [field]: value };
+    } else {
+      stop[field] = value;
+    }
+
     setFormData({ ...formData, itinerary: newItinerary });
+  };
+
+  const handleGeocodeStop = async (dayIndex: number, stopIndex: number) => {
+    const stopName = formData.itinerary[dayIndex].stops[stopIndex].name;
+    if (!stopName) {
+      toast.warning('Please enter a stop name before searching.');
+      return;
+    }
+
+    const uniqueId = `${dayIndex}-${stopIndex}`;
+    setGeocodingStop(uniqueId);
+
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(stopName)}, Sri Lanka&format=json&limit=1`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        updateStop(dayIndex, stopIndex, 'lat', parseFloat(lat));
+        updateStop(dayIndex, stopIndex, 'lng', parseFloat(lon));
+        toast.success(`Location found for "${stopName}"`);
+      } else {
+        toast.error(`Could not find location for "${stopName}"`);
+      }
+    } catch (error) {
+      toast.error('Geocoding service failed. Please try again.');
+    } finally {
+      setGeocodingStop(null);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -441,22 +474,62 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      <Input
-                        value={stop.name}
-                        onChange={(e) => updateStop(dayIndex, stopIndex, 'name', e.target.value)}
-                        placeholder="Stop name (e.g., Dambulla Cave Temple)"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          value={stop.name}
+                          onChange={(e) => updateStop(dayIndex, stopIndex, 'name', e.target.value)}
+                          placeholder="Stop name (e.g., Dambulla Cave Temple)"
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleGeocodeStop(dayIndex, stopIndex)}
+                          disabled={geocodingStop === `${dayIndex}-${stopIndex}`}
+                        >
+                          {geocodingStop === `${dayIndex}-${stopIndex}` ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                       <Input
                         value={stop.duration}
                         onChange={(e) => updateStop(dayIndex, stopIndex, 'duration', e.target.value)}
                         placeholder="Duration (e.g., 2 hours)"
                       />
                       <Textarea
-                        value={stop.description}
+                        value={stop.description || ''}
                         onChange={(e) => updateStop(dayIndex, stopIndex, 'description', e.target.value)}
                         placeholder="Stop description"
                         rows={2}
                       />
+                      <div className="space-y-2 p-2 border rounded-md bg-muted/20">
+                        <Label className="text-xs font-semibold">Coordinates</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Use the search button above to find coordinates automatically, or enter the decimal value below.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={stop.location?.lat || ''}
+                            onChange={(e) => updateStop(dayIndex, stopIndex, 'lat', e.target.valueAsNumber)}
+                            placeholder="Latitude (Decimal)"
+                            aria-label="Latitude"
+                          />
+                          <Input
+                            type="number"
+                            step="any"
+                            value={stop.location?.lng || ''}
+                            onChange={(e) => updateStop(dayIndex, stopIndex, 'lng', e.target.valueAsNumber)}
+                            placeholder="Longitude (Decimal)"
+                            aria-label="Longitude"
+                          />
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"

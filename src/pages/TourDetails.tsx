@@ -47,6 +47,7 @@ const TourDetails = () => {
 
         if (tourData) {
           setTour(tourData);
+          console.log("✅ Tour Data Received from API:", tourData); // <-- ADD THIS LINE
           setReviews(reviewsData.items);
           setError(null);
         } else {
@@ -139,27 +140,50 @@ const TourDetails = () => {
 
   const handleStopClick = (stopIndex: number) => {
     setSelectedStopIndex(stopIndex);
-    const selectedDayData = tour?.itinerary?.find(d => d.day === selectedDay);
-    const stop = selectedDayData?.stops[stopIndex];
-    
-    if (stop?.location?.lat && stop?.location?.lng && mapIframeRef.current) {
-      // Update iframe to show the specific location
-      const mapUrl = `https://www.google.com/maps/embed/v1/place?key=&q=${stop.location.lat},${stop.location.lng}&zoom=15`;
-      mapIframeRef.current.src = mapUrl;
-    }
+    // We only need to set the state. The component will re-render and `getCurrentMapUrl` will generate the correct URL.
   };
 
   // Get current map URL based on selected stop or default
   const getCurrentMapUrl = () => {
-    const selectedDayData = tour?.itinerary?.find(d => d.day === selectedDay);
-    
+    const selectedDayData = tour?.itinerary?.find((d) => d.day === selectedDay);
+    const stopsWithLocation = selectedDayData?.stops.filter((s) => s.location?.lat && s.location?.lng) || [];
+
+    // If a specific stop is selected, show only that stop.
     if (selectedStopIndex !== null && selectedDayData?.stops[selectedStopIndex]?.location) {
       const stop = selectedDayData.stops[selectedStopIndex];
-      return `https://maps.google.com/maps?q=${stop.location.lat},${stop.location.lng}&z=15&output=embed`;
+      // Create a URL for a single marker, zoomed in.
+      const bbox = `${stop.location!.lng - 0.01},${stop.location!.lat - 0.01},${stop.location!.lng + 0.01},${stop.location!.lat + 0.01}`;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${stop.location!.lat},${stop.location!.lng}`;
     }
-    
-    // Default to tour's general map
-    return tour?.mapEmbed || '';
+
+    // If no specific stop is selected, show all stops for the day.
+    if (stopsWithLocation.length > 0) {
+      // Create markers for each stop with a number
+      const markers = stopsWithLocation
+        .map((stop) => `marker=${stop.location!.lat},${stop.location!.lng}`)
+        .join('&');
+
+      // Calculate a bounding box that encompasses all stops
+      const latitudes = stopsWithLocation.map((s) => s.location!.lat);
+      const longitudes = stopsWithLocation.map((s) => s.location!.lng);
+
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
+
+      // Add some padding to the bounding box
+      const latPadding = (maxLat - minLat) * 0.1 || 0.02;
+      const lngPadding = (maxLng - minLng) * 0.1 || 0.02;
+
+      const bbox = [minLng - lngPadding, minLat - latPadding, maxLng + lngPadding, maxLat + latPadding].join(',');
+
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&${markers}`;
+    }
+
+    // Fallback to a default map of Sri Lanka if no stops have locations.
+    const defaultBbox = '79.6,5.9,81.9,9.9'; // A bounding box covering Sri Lanka
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${defaultBbox}&layer=mapnik`;
   };
 
   return (
@@ -351,6 +375,7 @@ const TourDetails = () => {
                     <div className="h-96 rounded-lg overflow-hidden mb-4">
                       <iframe
                         ref={mapIframeRef}
+                        key={getCurrentMapUrl()} // Add key to force re-render on src change
                         src={getCurrentMapUrl()}
                         width="100%"
                         height="100%"
