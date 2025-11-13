@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Calendar, Map, MessageSquare, LogOut, Palmtree, DollarSign, Hotel } from 'lucide-react';
+import { FileText } from 'lucide-react'; // Import a new icon
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -19,7 +20,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { path: '/admin/tours', icon: Map, label: 'Tours' },
     { path: '/admin/hotels', icon: Hotel, label: 'Hotels' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
-    { path: '/admin/income', icon: DollarSign, label: 'Income Analytics' },
+    { path: '/admin/policies', icon: FileText, label: 'Policies' }, // Add new nav item
+    { path: '/admin/income', icon: DollarSign, label: 'Income Analytics' },    
   ];
 
   return (

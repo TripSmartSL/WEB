@@ -28,6 +28,8 @@ import ManageHotels from "./pages/admin/ManageHotels";
 import IncomeAnalytics from "./pages/admin/IncomeAnalytics";
 import UserAccount from "./pages/UserAccount";
 import NotFound from "./pages/NotFound";
+import PolicyPage from "./pages/PolicyPage";
+import ManagePolicies from "./pages/admin/ManagePolicies"; // Import the new admin page
 
 const queryClient = new QueryClient();
 
@@ -139,6 +141,15 @@ const App = () => (
               </ProtectedRoute>
             } />
 
+            <Route path="/policy/:slug" element={
+              <div className="flex flex-col min-h-screen">
+                <Navbar />
+                <main className="flex-1"><PolicyPage /></main>
+                <Footer />
+              </div>
+            } />
+
+
             {/* Admin Routes */}
             <Route path="/admin" element={
               <ProtectedRoute adminOnly>
@@ -163,6 +174,11 @@ const App = () => (
             <Route path="/admin/hotels" element={
               <ProtectedRoute adminOnly>
                 <ManageHotels />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/policies" element={
+              <ProtectedRoute adminOnly>
+                <ManagePolicies />
               </ProtectedRoute>
             } />
             <Route path="/admin/income" element={

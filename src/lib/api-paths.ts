@@ -74,6 +74,13 @@ export const API_PATHS = {
     CONFIRM: '/payments/confirm',
     REFUND: (id: string) => `/payments/${id}/refund`,
   },
+
+  // Policy endpoints
+  POLICIES: {
+    LIST: '/policies',
+    DETAIL: (slug: string) => `/policies/${slug}`,
+    UPDATE: (slug: string) => `/policies/${slug}`,
+  },
   
   // Analytics endpoints (Admin)
   ANALYTICS: {

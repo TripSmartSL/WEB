@@ -287,9 +287,9 @@ const UserAccount = () => {
                                             "This booking has been cancelled. If you have any questions, please contact support."}
                                         </p>
                                       </div>
-                                      {selectedBooking.status === 'confirmed' && (
-                                        <div className="flex gap-2 pt-4">
-                                          <Button variant="outline">Modify Booking</Button>
+                                      {/* Show Cancel button only for pending bookings */}
+                                      {selectedBooking.status === 'pending' && (
+                                        <div className="flex gap-2 pt-4 border-t">
                                           <Button variant="destructive">Cancel Booking</Button>
                                         </div>
                                       )}
