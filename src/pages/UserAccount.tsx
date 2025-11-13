@@ -288,11 +288,11 @@ const UserAccount = () => {
                                         </p>
                                       </div>
                                       {/* Show Cancel button only for pending bookings */}
-                                      {selectedBooking.status === 'pending' && (
+                                      {/* {selectedBooking.status === 'pending' && (
                                         <div className="flex gap-2 pt-4 border-t">
                                           <Button variant="destructive">Cancel Booking</Button>
                                         </div>
-                                      )}
+                                      )} */}
                                     </div>
                                   )}
                                 </DialogContent>
