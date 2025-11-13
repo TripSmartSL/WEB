@@ -26,12 +26,12 @@ export interface AuthContextType {
 // ========================================
 
 export interface Tour {
-  id: string;
+  id: number;
   name: string;
   category: string;
   location: string;
   duration: string;
-  price: string; // Decimals from Prisma are often serialized as strings
+  price: number; // Decimals from Prisma are often serialized as strings
   rating: number;
   reviewsCount: number;
   image?: string;

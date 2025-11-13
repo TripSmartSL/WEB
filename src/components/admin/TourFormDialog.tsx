@@ -13,7 +13,7 @@ import type { Tour, DayItinerary, TourFormDialogProps } from '@/types';
 
 const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProps) => {
   const [formData, setFormData] = useState<Tour>({
-    id: '0',
+    id: 0,
     name: '',
     category: '',
     location: '',
@@ -60,7 +60,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
       setImageFiles(tour.images);
     } else {
       setFormData({
-        id: '0', // Use 0 or a temporary ID for new tours
+        id: 0, // Use 0 or a temporary ID for new tours
         name: '',
         category: '',
         location: '',
@@ -268,7 +268,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
                   id="price"
                   type="number"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.valueAsNumber || 0 })}
                   required
                 />
               </div>

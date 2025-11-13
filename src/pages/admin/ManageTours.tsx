@@ -66,7 +66,7 @@ const ManageTours = () => {
   const handleSaveTour = async (tourData: Tour) => {
     try {
       if (editingTour) {
-        // The id is a number, but the service expects a string
+        // The id is a number, and the service expects a string
         await tourService.updateTour(String(editingTour.id), tourData);
         toast.success('Tour updated successfully');
       } else {

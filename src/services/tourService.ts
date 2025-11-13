@@ -61,4 +61,18 @@ export const tourService = {
   async deleteTour(id: string): Promise<void> {
     await axiosInstance.delete(API_PATHS.TOURS.DELETE(id));
   },
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await axiosInstance.post<ApiResponse<{ url: string }>>(API_PATHS.UPLOAD.IMAGE, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to upload image');
+    }
+    return response.data.data;
+  },
 };
