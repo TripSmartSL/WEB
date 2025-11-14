@@ -93,4 +93,14 @@ export const API_PATHS = {
   UPLOAD: {
     IMAGE: '/upload/image',
   },
+
+  // Recognition endpoints
+  RECOGNIZE: {
+    IMAGE: '/recognize/image',
+  },
+
+  // Contact endpoints
+  CONTACT: {
+    SEND: '/contact',
+  },
 } as const;
