@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Message } from "@/types";
+import { sendMessageToBot } from "@/services/chatbotService";
 
 const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -27,53 +28,44 @@ const Chatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const generateBotResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
-      return "Hello! Welcome to Smart Travel Sri Lanka. I can help you with tour recommendations, bookings, and travel information. What would you like to know?";
-    } else if (lowerMessage.includes("tour") || lowerMessage.includes("recommend")) {
-      return "We offer amazing tours including Sigiriya Rock Fortress, Yala Safari, Ella trekking, and whale watching in Mirissa! Would you like details about any specific tour?";
-    } else if (lowerMessage.includes("price") || lowerMessage.includes("cost")) {
-      return "Our tours range from $60 to $120 per person. Prices include guides, entrance fees, and transportation. Would you like to know about a specific tour?";
-    } else if (lowerMessage.includes("book")) {
-      return "Great! You can book tours through our website. Visit the Tours page to browse all options, or click 'Book Now' to get started. Need help choosing a tour?";
-    } else if (lowerMessage.includes("whale")) {
-      return "Our Mirissa Whale Watching tour is incredible! It's $75 per person for a 4-hour experience where you can see blue whales and dolphins. Best time is November to April!";
-    } else if (lowerMessage.includes("sigiriya")) {
-      return "The Sigiriya Rock Fortress tour is $120 for a full day. You'll climb the ancient fortress, see stunning frescoes, and enjoy panoramic views. It's a UNESCO World Heritage Site!";
-    } else if (lowerMessage.includes("safari") || lowerMessage.includes("yala")) {
-      return "Our Yala Safari is $95 for a half-day adventure! Yala has the highest leopard density in the world. You'll also see elephants, bears, and amazing birdlife.";
-    } else {
-      return "I'd be happy to help! You can ask me about our tours, prices, booking process, or specific destinations in Sri Lanka. What would you like to know?";
-    }
-  };
-
   const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: messages.length + 1,
+      id: Date.now(),
       text: input,
       sender: "user",
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput("");
     setIsTyping(true);
 
-    // Simulate bot response delay
-    setTimeout(() => {
+    try {
+      const botReply = await sendMessageToBot(currentInput);
       const botResponse: Message = {
-        id: messages.length + 2,
-        text: generateBotResponse(input),
+        id: Date.now() + 1,
+        text: botReply,
         sender: "bot",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      // Add an error message to the chat UI
+      const errorResponse: Message = {
+        id: Date.now() + 1,
+        text: "Sorry, I'm having a little trouble connecting right now. Please try again in a moment.",
+        sender: "bot",
+        timestamp: new Date(),
+        isError: true, // Add an error flag
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -137,6 +129,8 @@ const Chatbot = () => {
                           className={`inline-block p-4 rounded-2xl ${
                             message.sender === "user"
                               ? "bg-primary text-primary-foreground"
+                              : message.isError
+                              ? "bg-destructive/20 text-destructive-foreground"
                               : "bg-muted"
                           }`}
                         >

@@ -161,6 +161,7 @@ export interface Message {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  isError?: boolean; // This property is optional
 }
 
 // ========================================

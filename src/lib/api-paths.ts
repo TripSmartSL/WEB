@@ -94,6 +94,11 @@ export const API_PATHS = {
     IMAGE: '/upload/image',
   },
 
+  // Chatbot endpoints
+  CHATBOT: {
+    CHAT: '/chatbot/chat',
+  },
+
   // Recognition endpoints
   RECOGNIZE: {
     IMAGE: '/recognize/image',
