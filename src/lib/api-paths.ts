@@ -84,7 +84,7 @@ export const API_PATHS = {
   
   // Analytics endpoints (Admin)
   ANALYTICS: {
-    DASHBOARD: '/analytics/dashboard',
+    DASHBOARD_SUMMARY: '/analytics/dashboard-summary',
     INCOME: '/analytics/income',
     INCOME_SUMMARY: '/analytics/income-summary',
     BOOKINGS: '/analytics/bookings',

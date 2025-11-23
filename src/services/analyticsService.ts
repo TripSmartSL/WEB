@@ -1,12 +1,16 @@
 import axiosInstance from '@/lib/axios';
 import { API_PATHS } from '@/lib/api-paths';
 
-interface DashboardStats {
+interface DashboardSummary {
   totalBookings: number;
+  activeTours: number;
+  totalReviews: number;
   totalRevenue: number;
-  activeUsers: number;
-  averageRating: number;
+  recentBookings: { id: number; serviceName: string; amount: number }[];
+  recentReviews: { id: number; userName: string; rating: number; comment: string }[];
 }
+
+
 
 interface IncomeData {
   date: string;
@@ -40,9 +44,9 @@ export const analyticsService = {
   },
 
   // Get dashboard statistics
-  async getDashboardStats(): Promise<DashboardStats> {
-    const response = await axiosInstance.get<{ data: DashboardStats }>(
-      API_PATHS.ANALYTICS.DASHBOARD
+  async getDashboardSummary(): Promise<DashboardSummary> {
+    const response = await axiosInstance.get<{ data: DashboardSummary }>(
+      API_PATHS.ANALYTICS.DASHBOARD_SUMMARY
     );
     return response.data.data;
   },
