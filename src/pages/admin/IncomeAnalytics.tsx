@@ -2,68 +2,55 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Calendar, ChartBar } from 'lucide-react';
 import { motion } from 'framer-motion';
+import useSWR from 'swr';
+import { analyticsService } from '@/services/analyticsService';
+import { API_PATHS } from '@/lib/api-paths';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const IncomeAnalytics = () => {
-  // Mock income data
-  const todayIncome = 2450;
-  const monthlyIncome = 45890;
-  const yearlyIncome = 389750;
-  const lastMonthIncome = 42300;
-  const monthlyGrowth = ((monthlyIncome - lastMonthIncome) / lastMonthIncome * 100).toFixed(1);
+  const { data, error, isLoading } = useSWR(
+    API_PATHS.ANALYTICS.INCOME_SUMMARY,
+    () => analyticsService.getIncomeSummary()
+  );
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-red-500">Failed to load analytics data.</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const stats = [
     {
       title: "Today's Income",
-      value: `$${todayIncome.toLocaleString()}`,
+      value: `$${(data?.todayIncome || 0).toLocaleString()}`,
       icon: DollarSign,
-      trend: '+12%',
-      description: 'Compared to yesterday',
       bgGradient: 'from-blue-500/20 to-cyan-500/20',
       iconColor: 'text-blue-500',
     },
     {
       title: 'Monthly Income',
-      value: `$${monthlyIncome.toLocaleString()}`,
+      value: `$${(data?.monthlyIncome || 0).toLocaleString()}`,
       icon: Calendar,
-      trend: `+${monthlyGrowth}%`,
+      trend: `${data?.monthlyGrowth || 0 >= 0 ? '+' : ''}${data?.monthlyGrowth || 0}%`,
       description: 'Compared to last month',
       bgGradient: 'from-green-500/20 to-emerald-500/20',
       iconColor: 'text-green-500',
     },
     {
       title: 'Yearly Income',
-      value: `$${yearlyIncome.toLocaleString()}`,
+      value: `$${(data?.yearlyIncome || 0).toLocaleString()}`,
       icon: TrendingUp,
-      trend: '+28%',
-      description: 'Compared to last year',
       bgGradient: 'from-purple-500/20 to-pink-500/20',
       iconColor: 'text-purple-500',
     },
   ];
 
-  // Mock monthly breakdown data
-  const monthlyBreakdown = [
-    { month: 'Jan', income: 32450 },
-    { month: 'Feb', income: 28900 },
-    { month: 'Mar', income: 35670 },
-    { month: 'Apr', income: 42100 },
-    { month: 'May', income: 38450 },
-    { month: 'Jun', income: 41230 },
-    { month: 'Jul', income: 44890 },
-    { month: 'Aug', income: 42300 },
-    { month: 'Sep', income: 45890 },
-    { month: 'Oct', income: 0 },
-    { month: 'Nov', income: 0 },
-    { month: 'Dec', income: 0 },
-  ];
-
-  const topTours = [
-    { name: 'Sigiriya Rock Fortress Tour', bookings: 145, revenue: 34800 },
-    { name: 'Ella Train Journey & Nine Arch Bridge', bookings: 132, revenue: 31680 },
-    { name: 'Yala National Park Safari', bookings: 98, revenue: 29400 },
-    { name: 'Galle Fort Historical Walk', bookings: 87, revenue: 20880 },
-    { name: 'Temple of the Tooth Tour', bookings: 76, revenue: 13680 },
-  ];
+  const monthlyBreakdown = data?.monthlyBreakdown || Array(9).fill({ month: '', income: 0 });
+  const topTours = data?.topTours || Array(5).fill({ name: '', revenue: 0 });
 
   return (
     <AdminLayout>
@@ -94,10 +81,12 @@ const IncomeAnalytics = () => {
                   </CardHeader>
                   <CardContent className="relative z-10">
                     <div className="text-3xl font-bold mb-1">{stat.value}</div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-green-600 font-medium">{stat.trend}</span>
-                      <span className="text-muted-foreground">{stat.description}</span>
-                    </div>
+                    {stat.trend && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-green-600 font-medium">{stat.trend}</span>
+                        <span className="text-muted-foreground">{stat.description}</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -116,9 +105,18 @@ const IncomeAnalytics = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {monthlyBreakdown.filter(m => m.income > 0).map((month, index) => {
-                  const maxIncome = Math.max(...monthlyBreakdown.map(m => m.income));
-                  const widthPercent = (month.income / maxIncome) * 100;
+                {isLoading && Array.from({ length: 9 }).map((_, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-2 w-full" />
+                  </div>
+                ))}
+                {!isLoading && monthlyBreakdown.filter(m => m.income > 0).map((month, index) => {
+                  const maxIncome = Math.max(...monthlyBreakdown.map(m => m.income), 1);
+                  const widthPercent = (month.income / maxIncome) * 100 || 0;
                   return (
                     <div key={month.month} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
@@ -150,21 +148,21 @@ const IncomeAnalytics = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topTours.map((tour, index) => (
+                {isLoading && Array.from({ length: 5 }).map((_, index) => (
+                  <Skeleton key={index} className="h-16 w-full rounded-lg" />
+                ))}
+                {!isLoading && topTours.map((tour, index) => (
                   <div
                     key={tour.name}
                     className="flex items-center justify-between p-3 rounded-lg bg-accent/50"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
                           {index + 1}
                         </span>
-                        <p className="font-medium text-sm">{tour.name}</p>
+                        <p className="font-medium text-sm truncate" title={tour.name}>{tour.name}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 ml-8">
-                        {tour.bookings} bookings
-                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-primary">${tour.revenue.toLocaleString()}</p>

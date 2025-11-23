@@ -21,13 +21,30 @@ interface BookingAnalytics {
   byStatus: Record<string, number>;
 }
 
+interface IncomeSummary {
+  todayIncome: number;
+  monthlyIncome: number;
+  yearlyIncome: number;
+  monthlyGrowth: number;
+  monthlyBreakdown: { month: string; income: number }[];
+  topTours: { name: string; revenue: number }[];
+}
+
 export const analyticsService = {
+  // Get all data for the income analytics page
+  async getIncomeSummary(): Promise<IncomeSummary> {
+    const response = await axiosInstance.get<{ data: IncomeSummary }>(
+      API_PATHS.ANALYTICS.INCOME_SUMMARY
+    );
+    return response.data.data;
+  },
+
   // Get dashboard statistics
   async getDashboardStats(): Promise<DashboardStats> {
-    const response = await axiosInstance.get<DashboardStats>(
+    const response = await axiosInstance.get<{ data: DashboardStats }>(
       API_PATHS.ANALYTICS.DASHBOARD
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Get income analytics
@@ -47,8 +64,8 @@ export const analyticsService = {
   async getBookingAnalytics(params?: { 
     startDate?: string; 
     endDate?: string;
-  }): Promise<BookingAnalytics> {
-    const response = await axiosInstance.get<BookingAnalytics>(
+  }): Promise<{ data: BookingAnalytics }> {
+    const response = await axiosInstance.get<{ data: BookingAnalytics }>(
       API_PATHS.ANALYTICS.BOOKINGS,
       { params }
     );

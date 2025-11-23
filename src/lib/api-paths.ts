@@ -86,6 +86,7 @@ export const API_PATHS = {
   ANALYTICS: {
     DASHBOARD: '/analytics/dashboard',
     INCOME: '/analytics/income',
+    INCOME_SUMMARY: '/analytics/income-summary',
     BOOKINGS: '/analytics/bookings',
   },
 
