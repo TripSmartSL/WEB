@@ -1,50 +1,19 @@
 import { useState } from 'react';
-import { Upload, X, Sparkles, MapPin, Calendar, Users } from 'lucide-react';
+import { Upload, X, Sparkles, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-import type { LocationDetails } from '@/types';
+import { recognitionService } from '@/services/recognitionService';
 
-const locationDatabase: Record<string, LocationDetails> = {
-  sigiriya: {
-    name: 'Sigiriya Rock Fortress',
-    description: 'An ancient rock fortress and palace ruins, a UNESCO World Heritage Site.',
-    history: 'Built during the reign of King Kashyapa (477-495 AD), Sigiriya is one of the most important urban planning sites of the first millennium. The fortress complex includes gardens, ponds, and structures built on the massive rock.',
-    bestTime: 'Early morning (6 AM - 9 AM) to avoid heat and crowds',
-    activities: ['Rock Climbing', 'Photography', 'Historical Tours', 'Garden Walks'],
-    tips: ['Wear comfortable shoes', 'Bring water', 'Start early morning', 'Protect from sun'],
-  },
-  temple: {
-    name: 'Temple of the Tooth',
-    description: 'Sacred Buddhist temple housing the relic of the tooth of Buddha.',
-    history: 'Located in Kandy, this temple has been a place of worship and pilgrimage since 1595. It is one of the most sacred places of worship for Buddhists worldwide.',
-    bestTime: 'During morning puja (5:30 AM - 7:00 AM) or evening puja (6:30 PM - 8:00 PM)',
-    activities: ['Temple Visit', 'Cultural Shows', 'Museum Tour', 'Kandy Lake Walk'],
-    tips: ['Dress modestly', 'Remove shoes', 'Respect religious customs', 'Photography restrictions apply'],
-  },
-  galle: {
-    name: 'Galle Fort',
-    description: 'A 17th-century Dutch fort and UNESCO World Heritage Site.',
-    history: 'Built by the Portuguese in 1588 and extensively fortified by the Dutch from 1649 onwards. The fort showcases a unique blend of European architecture and South Asian traditions.',
-    bestTime: 'Sunset (5 PM - 7 PM) for stunning ocean views',
-    activities: ['Walking Tours', 'Shopping', 'Lighthouse Visit', 'Beach Activities', 'Dining'],
-    tips: ['Explore narrow streets', 'Visit lighthouse', 'Try local cuisine', 'Shop for souvenirs'],
-  },
-  ella: {
-    name: 'Ella',
-    description: 'A small mountain town surrounded by tea plantations and waterfalls.',
-    history: 'Ella became popular during the British colonial era for its tea plantations. The iconic Nine Arch Bridge, built in 1921, is a marvel of colonial-era railway construction.',
-    bestTime: 'Year-round, but dry season (January-April) is ideal',
-    activities: ['Hiking', 'Train Rides', 'Tea Plantation Tours', 'Waterfall Visits'],
-    tips: ['Hike Little Adams Peak', 'Take the train ride', 'Visit Nine Arch Bridge', 'Try Ceylon tea'],
-  },
-};
-
+interface LocationInfo {
+  name: string;
+  description: string;
+}
 const ARImageRecognition = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [locationInfo, setLocationInfo] = useState<LocationDetails | null>(null);
+  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,42 +22,31 @@ const ARImageRecognition = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
-        analyzeImage(file.name);
       };
       reader.readAsDataURL(file);
+      analyzeImage(file);
     }
   };
 
-  const analyzeImage = (filename: string) => {
+  const analyzeImage = async (file: File) => {
     setIsAnalyzing(true);
-    
-    // Simulate AI analysis with dummy data
-    setTimeout(() => {
-      const lowerFilename = filename.toLowerCase();
-      let detectedLocation: LocationDetails | null = null;
-
-      if (lowerFilename.includes('sigiriya') || lowerFilename.includes('rock')) {
-        detectedLocation = locationDatabase.sigiriya;
-      } else if (lowerFilename.includes('temple') || lowerFilename.includes('tooth') || lowerFilename.includes('kandy')) {
-        detectedLocation = locationDatabase.temple;
-      } else if (lowerFilename.includes('galle') || lowerFilename.includes('fort')) {
-        detectedLocation = locationDatabase.galle;
-      } else if (lowerFilename.includes('ella') || lowerFilename.includes('bridge')) {
-        detectedLocation = locationDatabase.ella;
-      } else {
-        // Default to random location for demo
-        const locations = Object.values(locationDatabase);
-        detectedLocation = locations[Math.floor(Math.random() * locations.length)];
-      }
-
-      setLocationInfo(detectedLocation);
-      setIsAnalyzing(false);
-      
+    setLocationInfo(null);
+    try {
+      const result = await recognitionService.recognizeImage(file);
+      setLocationInfo(result);
       toast({
         title: 'Location Identified!',
-        description: `Found information about ${detectedLocation.name}`,
+        description: `Found information about ${result.name}`,
       });
-    }, 2000);
+    } catch (error: any) {
+      toast({
+        title: 'Recognition Failed',
+        description: error.message || 'Could not identify the location in the image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleClear = () => {
@@ -195,49 +153,7 @@ const ARImageRecognition = () => {
                     <CardContent className="space-y-6">
                       <div>
                         <h3 className="font-semibold mb-2">Description</h3>
-                        <p className="text-sm text-muted-foreground">{locationInfo.description}</p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-2">Historical Background</h3>
-                        <p className="text-sm text-muted-foreground">{locationInfo.history}</p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Best Time to Visit
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{locationInfo.bestTime}</p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          Activities
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {locationInfo.activities.map((activity, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
-                            >
-                              {activity}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-2">Travel Tips</h3>
-                        <ul className="space-y-1">
-                          {locationInfo.tips.map((tip, index) => (
-                            <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-primary mt-1">•</span>
-                              {tip}
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{locationInfo.description}</p>
                       </div>
                     </CardContent>
                   </Card>
