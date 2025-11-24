@@ -118,7 +118,7 @@ const Booking = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const selectedTour = tours.find((t) => t.id === formData.tourId);
+  const selectedTour = tours.find((t) => t.id === Number(formData.tourId));
 
   return (
     <div className="min-h-screen py-12">
