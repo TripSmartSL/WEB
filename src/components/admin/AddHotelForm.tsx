@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface AddHotelFormProps {
   onSuccess: (newHotel: Hotel) => void;
   onClose: () => void;
+  hotelToEdit?: Hotel | null;
 }
 
 interface RoomTypeFormData {
-  id: number; // Temporary client-side ID for list management
+  id: number | string; // Temporary client-side ID for list management
   name: string;
   description: string;
   price: number;
@@ -25,7 +26,7 @@ interface RoomTypeFormData {
   image: File | null;
 }
 
-const AddHotelForm = ({ onSuccess, onClose }: AddHotelFormProps) => {
+const AddHotelForm = ({ onSuccess, onClose, hotelToEdit }: AddHotelFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
@@ -45,6 +46,32 @@ const AddHotelForm = ({ onSuccess, onClose }: AddHotelFormProps) => {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeFormData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditMode = !!hotelToEdit;
+
+  useEffect(() => {
+    if (isEditMode && hotelToEdit) {
+      setFormData({
+        name: hotelToEdit.name,
+        location: hotelToEdit.location,
+        city: hotelToEdit.city,
+        priceFrom: hotelToEdit.priceFrom,
+        description: hotelToEdit.description,
+        hotelClass: hotelToEdit.hotelClass,
+        hotelStyle: hotelToEdit.hotelStyle.join(', '),
+        propertyAmenities: hotelToEdit.propertyAmenities.join(', '),
+        latitude: hotelToEdit.coordinates?.lat || 0,
+        longitude: hotelToEdit.coordinates?.lng || 0,
+        mapEmbed: hotelToEdit.mapEmbed || '',
+      });
+      setImageFiles(hotelToEdit.images || []);
+      setRoomTypes(hotelToEdit.roomTypes.map(rt => ({
+        ...rt,
+        features: rt.features.join(', '),
+        image: null, // Existing images are strings, new ones are Files
+      })));
+    }
+  }, [hotelToEdit, isEditMode]);
 
   const onDrop = (acceptedFiles: File[]) => {
     setImageFiles(prev => [...prev, ...acceptedFiles]);
@@ -173,27 +200,35 @@ const AddHotelForm = ({ onSuccess, onClose }: AddHotelFormProps) => {
           price: rt.price,
           maxGuests: rt.maxGuests,
           features: rt.features.split(',').map(f => f.trim()).filter(Boolean),
-          image: uploadedRoomImageUrls[index] || undefined,
+          image: uploadedRoomImageUrls[index] || (isEditMode ? hotelToEdit?.roomTypes[index]?.image : undefined),
           available: true, // Set default availability
         })),
         rating: 0, // Initialize rating
         reviewsCount: 0, // Initialize reviews count
       };
 
-      const createdHotel = await hotelService.createHotel(newHotelData);
-      
-      toast({
-        title: 'Success!',
-        description: `Hotel "${createdHotel.name}" has been created.`,
-      });
+      if (isEditMode && hotelToEdit) {
+        const updatedHotel = await hotelService.updateHotel(hotelToEdit.id.toString(), newHotelData);
+        toast({
+          title: 'Success!',
+          description: `Hotel "${updatedHotel.name}" has been updated.`,
+        });
+        onSuccess(updatedHotel);
+      } else {
+        const createdHotel = await hotelService.createHotel(newHotelData);
+        toast({
+          title: 'Success!',
+          description: `Hotel "${createdHotel.name}" has been created.`,
+        });
+        onSuccess(createdHotel);
+      }
 
-      onSuccess(createdHotel);
-      onClose();
+      onClose(); 
     } catch (error) {
       console.error('Failed to create hotel:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create hotel. Please check the details and try again.',
+        description: `Failed to ${isEditMode ? 'update' : 'create'} hotel. Please check the details and try again.`,
         variant: 'destructive',
       });
     } finally {
@@ -354,7 +389,7 @@ const AddHotelForm = ({ onSuccess, onClose }: AddHotelFormProps) => {
       <div className="flex justify-end mt-4">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Hotel
+          {isEditMode ? 'Update Hotel' : 'Create Hotel'}
         </Button>
       </div>
     </form>
