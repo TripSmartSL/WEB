@@ -19,6 +19,9 @@ interface PaginatedResponse<T> {
   hotels: T[];
   pagination: {
     total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
   };
 }
 
@@ -35,6 +38,14 @@ interface AvailabilityResponse {
   roomsAvailable: number;
 }
 
+// This type represents the data needed to create a hotel, matching the backend DTO. It correctly
+// omits server-generated fields from the top-level Hotel and the nested HotelRoomType.
+type CreateHotelPayload = Omit<Hotel, 'id' | 'createdAt' | 'updatedAt' | 'roomTypes'> & {
+  roomTypes?: (Omit<Hotel['roomTypes'][0], 'id' | 'hotelId'>)[];
+};
+
+
+
 export const hotelService = {
   // Get all hotels with filters
   async getHotels(params?: HotelsListParams): Promise<PaginatedResponse<Hotel>> {
@@ -43,18 +54,21 @@ export const hotelService = {
       { params }
     );
     if (response.data && response.data.success) {
-      return response.data.data;
+      return response.data.data as PaginatedResponse<Hotel>;
     }
     // Return an empty array on failure to prevent crashes
-    return { hotels: [], pagination: { total: 0 } };
+    return { hotels: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
   },
 
   // Get single hotel by ID
   async getHotelById(id: string): Promise<Hotel | undefined> {
-    const response = await axiosInstance.get<Hotel>(
+    const response = await axiosInstance.get<ApiResponse<Hotel>>(
       API_PATHS.HOTELS.DETAIL(id)
     );
-    return response.data;
+    if (response.data && response.data.success) {
+      return response.data.data;
+    }
+    return undefined;
   },
 
   // Check room availability
@@ -70,7 +84,7 @@ export const hotelService = {
   },
 
   // Create new hotel (Admin)
-  async createHotel(hotelData: Omit<Hotel, 'id'>): Promise<Hotel> {
+  async createHotel(hotelData: CreateHotelPayload): Promise<Hotel> {
     const response = await axiosInstance.post<Hotel>(
       API_PATHS.HOTELS.CREATE,
       hotelData
@@ -90,5 +104,20 @@ export const hotelService = {
   // Delete hotel (Admin)
   async deleteHotel(id: string): Promise<void> {
     await axiosInstance.delete(API_PATHS.HOTELS.DELETE(id));
+  },
+
+  // Upload an image
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await axiosInstance.post<{ data: { url: string } }>(
+      API_PATHS.UPLOAD.IMAGE,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+    return response.data.data;
   },
 };
