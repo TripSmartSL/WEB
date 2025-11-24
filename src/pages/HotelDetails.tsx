@@ -28,6 +28,8 @@ const HotelDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
   useEffect(() => {
     const fetchHotelDetails = async () => {
       if (!id) return;
@@ -35,13 +37,16 @@ const HotelDetails = () => {
       try {
         setLoading(true);
         const [hotelData, reviewsData] = await Promise.all([
-          hotelService.getHotelById(id),
-          reviewService.getHotelReviews(id)
+          hotelService.getHotelById(id), // Assuming this returns the hotel object directly
+          reviewService.getHotelReviews(id) // Assuming this returns { data: [...] }
         ]);
 
         if (hotelData) {
-          setHotel(hotelData);
-          setReviews(reviewsData.filter(r => r.status === 'approved'));
+          setHotel(hotelData); 
+          // The review service returns an object, not an array directly.
+          // We need to access the array within that object.
+          const reviewsArray = (reviewsData as any)?.data || (reviewsData as any)?.reviews || [];
+          setReviews(reviewsArray.filter((r: HotelReview) => r.status === 'approved'));
           setError(null);
         } else {
           setError('Hotel not found');
@@ -93,33 +98,35 @@ const HotelDetails = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-subtle">
-      <Navbar />
+      
       
       <main className="flex-1">
         {/* Image Gallery */}
         <section className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[500px]">
-            <div className="md:col-span-3 h-full">
-              <img
-                src={hotel.images[selectedImage]}
-                alt={hotel.name}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
-            <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
-              {hotel.images.slice(0, 3).map((img, idx) => (
+          {hotel.images && hotel.images.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[500px]">
+              <div className="md:col-span-3 h-full">
                 <img
-                  key={idx}
-                  src={img}
-                  alt={`${hotel.name} ${idx + 1}`}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`w-full h-[160px] object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
-                    selectedImage === idx ? 'ring-2 ring-primary' : ''
-                  }`}
+                  src={`${API_BASE_URL}${hotel.images[selectedImage]}`}
+                  alt={hotel.name}
+                  className="w-full h-full object-cover rounded-lg"
                 />
-              ))}
+              </div>
+              <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
+                {hotel.images.slice(0, 3).map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={`${API_BASE_URL}${img}`}
+                    alt={`${hotel.name} ${idx + 1}`}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`w-full h-[160px] object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
+                      selectedImage === idx ? 'ring-2 ring-primary' : ''
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </section>
 
         {/* Hotel Info */}
@@ -140,7 +147,7 @@ const HotelDetails = () => {
                 </div>
 
                 <div className="flex items-center gap-4 flex-wrap">
-                  {hotel.hotelStyle.map(style => (
+                  {(hotel.hotelStyle ?? []).map(style => (
                     <Badge key={style} variant="secondary">{style}</Badge>
                   ))}
                 </div>
@@ -200,7 +207,7 @@ const HotelDetails = () => {
               <div>
                 <h2 className="text-2xl font-bold mb-4">Property Amenities</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {hotel.propertyAmenities.map(amenity => {
+                  {(hotel.propertyAmenities ?? []).map(amenity => {
                     const Icon = amenityIcons[amenity];
                     return (
                       <div key={amenity} className="flex items-center gap-2">
@@ -216,12 +223,12 @@ const HotelDetails = () => {
               <div>
                 <h2 className="text-2xl font-bold mb-4">Room Types</h2>
                 <div className="space-y-4">
-                  {hotel.roomTypes.map(room => (
+                  {(hotel.roomTypes ?? []).map(room => (
                     <Card key={room.id}>
                       <CardContent className="p-4">
                         <div className="flex gap-4">
                           <img
-                            src={room.image}
+                            src={room.image ? `${API_BASE_URL}${room.image}` : 'https://via.placeholder.com/128x128?text=No+Image'}
                             alt={room.name}
                             className="w-32 h-32 object-cover rounded-lg"
                           />
@@ -322,7 +329,7 @@ const HotelDetails = () => {
         </section>
       </main>
 
-      <Footer />
+     
     </div>
   );
 };
