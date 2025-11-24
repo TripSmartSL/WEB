@@ -168,6 +168,7 @@ const TourFormDialog = ({ open, onOpenChange, tour, onSave }: TourFormDialogProp
     setFormData({ ...formData, itinerary: newItinerary });
   };
 
+
   const updateStop = (dayIndex: number, stopIndex: number, field: string, value: any) => {
     const newItinerary = [...formData.itinerary];
     const stop = newItinerary[dayIndex].stops[stopIndex] as any;
