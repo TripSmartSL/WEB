@@ -5,12 +5,15 @@ import { Link } from 'react-router-dom';
 import type { HotelCardProps } from '@/types';
 
 const HotelCard = ({ hotel }: HotelCardProps) => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const imageUrl = hotel.image ? `${API_BASE_URL}${hotel.image}` : (hotel.images?.[0] ? `${API_BASE_URL}${hotel.images[0]}` : 'https://via.placeholder.com/400x300?text=No+Image');
+
   return (
     <Link to={`/hotels/${hotel.id}`}>
       <Card className="overflow-hidden hover:shadow-card transition-all duration-300 group">
         <div className="relative h-48 overflow-hidden">
           <img
-            src={hotel.image || hotel.images[0]}
+            src={imageUrl}
             alt={hotel.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
