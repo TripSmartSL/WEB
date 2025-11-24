@@ -96,6 +96,17 @@ const HotelDetails = () => {
     sleepQuality: reviews.reduce((sum, r) => sum + r.sleepQualityRating, 0) / reviews.length,
   } : null;
 
+  const getMapUrl = () => {
+    if (hotel.mapEmbed) {
+      return hotel.mapEmbed;
+    }
+    if (hotel.coordinates && hotel.coordinates.lat && hotel.coordinates.lng) {
+      const { lat, lng } = hotel.coordinates;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`;
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-subtle">
       
@@ -307,8 +318,13 @@ const HotelDetails = () => {
                   <div className="mb-4">
                     <h3 className="font-semibold mb-2">Location</h3>
                     {hotel.mapEmbed ? (
+                      <div
+                        className="w-full h-[200px] [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:rounded-lg"
+                        dangerouslySetInnerHTML={{ __html: hotel.mapEmbed }}
+                      />
+                    ) : getMapUrl() ? (
                       <iframe
-                        src={hotel.mapEmbed}
+                        src={getMapUrl() as string}
                         width="100%"
                         height="200"
                         style={{ border: 0 }}
