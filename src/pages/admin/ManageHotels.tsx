@@ -4,9 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Edit, Trash2, Star, MapPin, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { hotelService } from '@/services/hotelService';
 import type { Hotel } from '@/types';
+import AddHotelForm from '@/components/admin/AddHotelForm';
 
 const ManageHotels = () => {
   const { toast } = useToast();
@@ -14,11 +22,9 @@ const ManageHotels = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const filteredHotels = hotels.filter(hotel =>
-    hotel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    hotel.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
   useEffect(() => {
     const fetchHotels = async () => {
@@ -28,7 +34,7 @@ const ManageHotels = () => {
         const data = await hotelService.getHotels({
           search: searchTerm,
         });
-        setHotels(data);
+        setHotels(data.hotels);
       } catch (error) {
         console.error('Failed to fetch hotels:', error);
         setError('Failed to load hotels. Please try again later.');
@@ -64,15 +70,27 @@ const ManageHotels = () => {
     }
   };
 
+  const handleHotelCreated = (newHotel: Hotel) => {
+    setHotels(prevHotels => [newHotel, ...prevHotels]);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Manage Hotels</h1>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Hotel
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add New Hotel
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Add a New Hotel</DialogTitle></DialogHeader>
+              <AddHotelForm onSuccess={handleHotelCreated} onClose={() => setIsDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="relative">
@@ -93,13 +111,13 @@ const ManageHotels = () => {
           <div className="text-center py-12">
             <p className="text-destructive">{error}</p>
           </div>
-        ) : filteredHotels.length > 0 ? (
+        ) : hotels.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredHotels.map((hotel) => (
+            {hotels.map((hotel) => (
               <Card key={hotel.id} className="overflow-hidden">
                 <div className="relative h-48">
                   <img
-                    src={hotel.image || hotel.images[0]}
+                    src={hotel.image ? `${API_BASE_URL}${hotel.image}` : (hotel.images?.[0] ? `${API_BASE_URL}${hotel.images[0]}` : 'https://via.placeholder.com/400x300?text=No+Image')}
                     alt={hotel.name}
                     className="w-full h-full object-cover"
                   />
