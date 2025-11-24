@@ -201,6 +201,8 @@ export interface Hotel {
   };
   mapEmbed?: string;
   roomTypes: HotelRoomType[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface HotelRoomType {

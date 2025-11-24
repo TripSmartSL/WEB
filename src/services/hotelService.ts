@@ -85,20 +85,20 @@ export const hotelService = {
 
   // Create new hotel (Admin)
   async createHotel(hotelData: CreateHotelPayload): Promise<Hotel> {
-    const response = await axiosInstance.post<Hotel>(
+    const response = await axiosInstance.post<ApiResponse<Hotel>>(
       API_PATHS.HOTELS.CREATE,
       hotelData
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Update hotel (Admin)
-  async updateHotel(id: string, hotelData: Partial<Hotel>): Promise<Hotel> {
-    const response = await axiosInstance.put<Hotel>(
+  async updateHotel(id: string, hotelData: Partial<CreateHotelPayload>): Promise<Hotel> {
+    const response = await axiosInstance.put<ApiResponse<Hotel>>(
       API_PATHS.HOTELS.UPDATE(id),
       hotelData
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Delete hotel (Admin)

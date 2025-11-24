@@ -23,6 +23,7 @@ const ManageHotels = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -70,8 +71,24 @@ const ManageHotels = () => {
     }
   };
 
-  const handleHotelCreated = (newHotel: Hotel) => {
-    setHotels(prevHotels => [newHotel, ...prevHotels]);
+  const handleSuccess = (hotel: Hotel) => {
+    if (editingHotel) {
+      // Update existing hotel in the list
+      setHotels(prev => prev.map(h => (h.id === hotel.id ? hotel : h)));
+    } else {
+      // Add new hotel to the list
+      setHotels(prev => [hotel, ...prev]);
+    }
+  };
+
+  const openAddDialog = () => {
+    setEditingHotel(null);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (hotel: Hotel) => {
+    setEditingHotel(hotel);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -81,14 +98,20 @@ const ManageHotels = () => {
           <h1 className="text-3xl font-bold">Manage Hotels</h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={openAddDialog}>
                 <Plus className="h-4 w-4" />
                 Add New Hotel
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Add a New Hotel</DialogTitle></DialogHeader>
-              <AddHotelForm onSuccess={handleHotelCreated} onClose={() => setIsDialogOpen(false)} />
+              <DialogHeader>
+                <DialogTitle>{editingHotel ? 'Edit Hotel' : 'Add a New Hotel'}</DialogTitle>
+              </DialogHeader>
+              <AddHotelForm
+                onSuccess={handleSuccess}
+                onClose={() => setIsDialogOpen(false)}
+                hotelToEdit={editingHotel}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -144,7 +167,7 @@ const ManageHotels = () => {
                   </div>
 
                   <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(hotel)}>
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
