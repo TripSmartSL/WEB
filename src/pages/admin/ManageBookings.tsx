@@ -99,7 +99,7 @@ const BookingDetailsDialog = ({
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
+                {/* <SelectItem value="pending">Pending</SelectItem> */}
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
