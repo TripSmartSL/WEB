@@ -120,6 +120,9 @@ const Booking = () => {
 
   const selectedTour = tours.find((t) => t.id === Number(formData.tourId));
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const imageUrl = selectedTour?.image ? `${API_BASE_URL}${selectedTour.image}` : '/placeholder.jpg';
+
   return (
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -277,8 +280,8 @@ const Booking = () => {
                         <>
                           <div className="aspect-video rounded-lg overflow-hidden">
                             <img
-                              src={selectedTour.image || '/placeholder.jpg'}
-                              alt={selectedTour.name}
+                              src={imageUrl}
+                              alt={selectedTour.description}
                               className="w-full h-full object-cover"
                             />
                           </div>
