@@ -14,7 +14,7 @@ const Navbar = () => {
   const links = [
     { name: "Home", path: "/" },
     { name: "Tours", path: "/tours" },
-    { name: "Hotels", path: "/hotels" },
+    // { name: "Hotels", path: "/hotels" },
     { name: "Reviews", path: "/reviews" },
     { name: "AR Discovery", path: "/ar" },
     { name: "Chatbot", path: "/chatbot" },

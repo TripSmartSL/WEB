@@ -18,7 +18,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/admin/tours', icon: Map, label: 'Tours' },
-    { path: '/admin/hotels', icon: Hotel, label: 'Hotels' },
+    // { path: '/admin/hotels', icon: Hotel, label: 'Hotels' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/policies', icon: FileText, label: 'Policies' }, // Add new nav item
     { path: '/admin/income', icon: DollarSign, label: 'Income Analytics' },    
