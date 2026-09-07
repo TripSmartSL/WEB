@@ -9,6 +9,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     historyApiFallback: true,
+    // Inside Docker the source is a bind mount, and filesystem events from the
+    // Windows/macOS host do not reach the container. Poll instead.
+    ...(process.env["CHOKIDAR_USEPOLLING"] === "true"
+      ? { watch: { usePolling: true, interval: 300 } }
+      : {}),
+    // When the container port is published on a different host port, the HMR
+    // websocket has to be told which port the browser should dial.
+    ...(process.env["VITE_HMR_CLIENT_PORT"]
+      ? { hmr: { clientPort: Number(process.env["VITE_HMR_CLIENT_PORT"]) } }
+      : {}),
     proxy: {
       "/api": {
         target: "http://localhost:3000",

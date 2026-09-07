@@ -6,7 +6,11 @@ import axios, {
 } from 'axios';
 import { toast } from 'sonner';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+// Resolved from the environment so the same build can point at a local API, a
+// container, or a deployed one. Falls back to the previous hardcoded value.
+export const API_BASE_URL =
+  import.meta.env.VITE_APP_API_BASE_URL ||
+  `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1`;
 const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 

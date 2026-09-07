@@ -1,4 +1,4 @@
-import axiosInstance from '@/lib/axios';
+import axiosInstance, { API_BASE_URL } from '@/lib/axios';
 import axios from 'axios';
 import { API_PATHS } from '@/lib/api-paths';
 import type { User } from '@/types';
@@ -143,7 +143,7 @@ export const authService = {
 
     try {
       const tempApi = axios.create({
-        baseURL: 'http://localhost:3000/api/v1',
+        baseURL: API_BASE_URL,
         timeout: 10000,
         headers: { 'Content-Type': 'application/json' },
       });
